@@ -1,6 +1,7 @@
 package sloth.match;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 
 public record Lst<T>(T element, Lst<T> parent)
@@ -27,6 +28,7 @@ public record Lst<T>(T element, Lst<T> parent)
             list.add(lst.element);
             lst = lst.parent;
         }
+        Collections.reverse(list);
         return list;
     }
 }
