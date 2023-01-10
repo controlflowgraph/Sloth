@@ -17,7 +17,8 @@ public record WordMatcher(String word) implements Matcher
             str.index(match.end());
             if(str.matches(this.word))
             {
-                filtered.add(match.extend(str.index() + 1));
+                str.next();
+                filtered.add(match.extend(str.index()));
             }
         }
         return filtered;
