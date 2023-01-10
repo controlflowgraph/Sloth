@@ -48,4 +48,9 @@ public class Provider<T>
     {
         return matches(e -> Objects.equals(element, e));
     }
+
+    public boolean hasRemaining(int required)
+    {
+        return this.index + required <= this.elements.size();
+    }
 }
