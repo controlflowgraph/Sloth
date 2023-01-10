@@ -17,7 +17,7 @@ public record Pattern(String name, Matcher matcher, Function<Match, String> tree
 
     public List<Match> tryMatch(List<Pattern> patterns, Provider<String> provider, Match match)
     {
-        int size = this.matcher.getMinimumSize();
+        int size = 1; this.matcher.getMinimumSize();
         if (!provider.hasRemaining(size))
             return List.of();
         provider.require(size);

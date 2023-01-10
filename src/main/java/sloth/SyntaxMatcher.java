@@ -10,7 +10,39 @@ import java.util.Map;
 public class SyntaxMatcher
 {
     private SyntaxMatcher() { }
-    public static List<List<Match>> parse(List<Pattern> patterns, Provider<String> provider)
+    public static List<List<List<Match>>> parse(List<Pattern> patterns, Provider<String> provider)
+    {
+        List<List<String>> splits = split(provider);
+        List<List<List<Match>>> matches = new ArrayList<>();
+        for (List<String> split : splits)
+        {
+            matches.add(matches(patterns, new Provider<>(split)));
+        }
+        return matches;
+    }
+
+    private static List<List<String>> split(Provider<String> provider)
+    {
+        List<List<String>> lists = new ArrayList<>();
+        List<String> current = new ArrayList<>();
+        lists.add(current);
+        while (provider.has())
+        {
+            String next = provider.next();
+            if(next.equals("."))
+            {
+                current = new ArrayList<>();
+                lists.add(current);
+            }
+            else
+            {
+                current.add(next);
+            }
+        }
+        return lists;
+    }
+
+    private static List<List<Match>> matches(List<Pattern> patterns, Provider<String> provider)
     {
         List<List<Match>> iterations = List.of(
                 List.of(new Match(0, 0, null, Map.of()))

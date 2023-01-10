@@ -30,17 +30,47 @@ class SyntaxMatcherTest
                             if(!m.values().containsKey("b"))
                                 return "( " + m.values().get("a").element() + " * € ) ";
                             return "( " + m.values().get("a").element() + " * " + m.values().get("b").element() + ")";
+                        }),
+                new Pattern("plus", new SequenceMatcher(List.of(
+                        new SubMatcher("a"),
+                        new WordMatcher("+"),
+                        new SubMatcher("b")
+                )),
+                        m -> {
+                            if(!m.values().containsKey("a"))
+                                return "( € + € )";
+                            if(!m.values().containsKey("b"))
+                                return "( " + m.values().get("a").element() + " + € ) ";
+                            return "( " + m.values().get("a").element() + " + " + m.values().get("b").element() + ")";
+                        }),
+                new Pattern("let", new SequenceMatcher(List.of(
+                        new WordMatcher("let"),
+                        new TextMatcher("n"),
+                        new WordMatcher("be"),
+                        new WordMatcher("equal"),
+                        new WordMatcher("to"),
+                        new SubMatcher("v")
+                )),
+                        m -> {
+                            if(!m.values().containsKey("n"))
+                                return "( let ? be equal to ? )";
+                            if(!m.values().containsKey("v"))
+                                return "( " + m.values().get("n").element() + " be equal to ? ) ";
+                            return "( let " + m.values().get("n").element() + " be equal to " + m.values().get("v").element() + ")";
                         })
         );
-        Provider<String> provider = new Provider<>(Lexer.lex("1 * 2 * 3"));
+        Provider<String> provider = new Provider<>(Lexer.lex("let a be equal to 1 * 2 + 3. let b be equal to 5."));
 
-        List<List<Match>> parse = SyntaxMatcher.parse(patterns, provider);
-        for (List<Match> matches : parse)
+        List<List<List<Match>>> parse = SyntaxMatcher.parse(patterns, provider);
+        for (List<List<Match>> lists : parse)
         {
-            System.out.println("-".repeat(100));
-            for (int i = 1; i < matches.size(); i++)
+            System.out.println("=======");
+            for (List<Match> matches : lists)
             {
-                System.out.println(matches.get(i));
+                for (int i = 1; i < matches.size(); i++)
+                {
+                    System.out.println(matches.get(i));
+                }
             }
         }
     }
