@@ -5,6 +5,8 @@ import sloth.examples.CorrectPattern;
 import sloth.examples.NonStaticPattern;
 import sloth.examples.WrongArgumentsPattern;
 import sloth.examples.WrongReturnPattern;
+import sloth.pattern.Pattern;
+import sloth.pattern.PatternCollector;
 
 import java.util.List;
 

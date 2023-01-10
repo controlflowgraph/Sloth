@@ -1,7 +1,7 @@
 package sloth.examples;
 
-import sloth.Pattern;
-import sloth.PatternMarker;
+import sloth.pattern.Pattern;
+import sloth.pattern.PatternMarker;
 
 public class WrongReturnPattern
 {
