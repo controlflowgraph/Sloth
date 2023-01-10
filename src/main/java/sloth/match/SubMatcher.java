@@ -5,6 +5,7 @@ import sloth.pattern.Pattern;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 
 public record SubMatcher(String name) implements Matcher
 {
@@ -17,7 +18,8 @@ public record SubMatcher(String name) implements Matcher
             for (Pattern pattern : patterns)
             {
                 str.index(match.end());
-                List<Match> t = pattern.tryMatch(patterns, str, match);
+                Match start = new Match(match.end(), match.end(), null, Map.of());
+                List<Match> t = pattern.tryMatch(patterns, str, start);
                 for (Match m : t)
                 {
                     filtered.add(match.extend(m.end(), this.name, m));
