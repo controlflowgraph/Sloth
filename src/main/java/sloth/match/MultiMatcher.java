@@ -25,4 +25,10 @@ public record MultiMatcher(boolean zero, Matcher matcher) implements Matcher
         }
         return filtered;
     }
+
+    @Override
+    public int getMinimumSize()
+    {
+        return this.zero ? 0 : this.matcher.getMinimumSize();
+    }
 }

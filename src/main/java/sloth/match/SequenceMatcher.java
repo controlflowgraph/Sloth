@@ -16,4 +16,10 @@ public record SequenceMatcher(List<Matcher> matchers) implements Matcher
         }
         return matches;
     }
+
+    @Override
+    public int getMinimumSize()
+    {
+        return this.matchers.stream().mapToInt(Matcher::getMinimumSize).sum();
+    }
 }

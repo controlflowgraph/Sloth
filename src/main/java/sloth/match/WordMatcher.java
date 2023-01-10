@@ -23,4 +23,10 @@ public record WordMatcher(String word) implements Matcher
         }
         return filtered;
     }
+
+    @Override
+    public int getMinimumSize()
+    {
+        return 1;
+    }
 }

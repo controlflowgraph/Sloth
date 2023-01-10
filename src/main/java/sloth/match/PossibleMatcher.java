@@ -19,4 +19,10 @@ public record PossibleMatcher(Matcher matcher) implements Matcher
         }
         return filtered;
     }
+
+    @Override
+    public int getMinimumSize()
+    {
+        return 0;
+    }
 }

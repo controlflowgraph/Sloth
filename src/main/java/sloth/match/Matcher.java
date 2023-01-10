@@ -8,4 +8,6 @@ import java.util.List;
 public interface Matcher
 {
     List<Match> match(List<Pattern> patterns, Provider<String> str, List<Match> matches);
+
+    int getMinimumSize();
 }
