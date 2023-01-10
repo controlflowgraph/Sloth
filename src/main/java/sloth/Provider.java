@@ -74,7 +74,7 @@ public class Provider<T>
 
     public boolean hasRemaining(int required)
     {
-        return this.index + required + consumed() <= this.elements.size();
+        return this.index + consumed() <= this.elements.size();
     }
 
     public int size()
