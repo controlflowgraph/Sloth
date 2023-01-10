@@ -31,4 +31,10 @@ public record Lst<T>(T element, Lst<T> parent)
         Collections.reverse(list);
         return list;
     }
+
+    @Override
+    public String toString()
+    {
+        return asList(this).toString();
+    }
 }
