@@ -16,6 +16,7 @@ public record SubMatcher(String name) implements Matcher
         {
             for (Pattern pattern : patterns)
             {
+                str.index(match.end());
                 List<Match> t = pattern.tryMatch(patterns, str, match);
                 for (Match m : t)
                 {
@@ -29,6 +30,6 @@ public record SubMatcher(String name) implements Matcher
     @Override
     public int getMinimumSize()
     {
-        return 1;
+        return 0;
     }
 }
