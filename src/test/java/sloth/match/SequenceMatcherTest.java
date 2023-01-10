@@ -30,12 +30,12 @@ class SequenceMatcherTest
     void shouldMatchSequence()
     {
         List<Match> expected = List.of(
-                new Match(0, 3, Map.of())
+                new Match(0, 3, null, Map.of())
         );
 
         List<Match> existing = List.of(
-                new Match(0, 0, Map.of()),
-                new Match(0, 1, Map.of())
+                new Match(0, 0, null, Map.of()),
+                new Match(0, 1, null, Map.of())
         );
 
         Provider<String> provider = getProvider();

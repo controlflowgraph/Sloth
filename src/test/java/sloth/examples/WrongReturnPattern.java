@@ -8,6 +8,6 @@ public class WrongReturnPattern
     @PatternMarker
     public static Object something()
     {
-        return new Pattern("something");
+        return new Pattern("something", null);
     }
 }
