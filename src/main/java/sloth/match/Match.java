@@ -24,4 +24,16 @@ public record Match(int start, int end, Pattern pattern, Map<String, Lst<Object>
     {
         return new Match(this.start, this.end, pattern, this.values);
     }
+
+    @Override
+    public String toString()
+    {
+        if(this.pattern != null)
+            return this.pattern.tree().apply(this);
+        return "Match{" + start +
+                ", " + end +
+                ", " + pattern +
+                ", " + values +
+                '}';
+    }
 }
