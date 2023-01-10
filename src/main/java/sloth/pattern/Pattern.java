@@ -6,9 +6,15 @@ import sloth.match.Matcher;
 
 import java.util.List;
 import java.util.Map;
+import java.util.function.Function;
 
-public record Pattern(String name, Matcher matcher)
+public record Pattern(String name, Matcher matcher, Function<Match, String> tree)
 {
+    public Pattern(String name, Matcher matcher)
+    {
+        this(name, matcher, m -> m.values().toString());
+    }
+
     public List<Match> tryMatch(List<Pattern> patterns, Provider<String> provider, Match match)
     {
         int size = this.matcher.getMinimumSize();
@@ -21,5 +27,11 @@ public record Pattern(String name, Matcher matcher)
         return matches.stream()
                 .map(m -> m.extend(this))
                 .toList();
+    }
+
+    @Override
+    public String toString()
+    {
+        return this.name;
     }
 }
