@@ -5,6 +5,15 @@ import java.util.List;
 
 public record Lst<T>(T element, Lst<T> parent)
 {
+    public static <T> Lst<T> of(List<T> elements)
+    {
+        Lst<T> current = null;
+        for (T element : elements)
+        {
+            current = new Lst<>(element, current);
+        }
+        return current;
+    }
     public static <T> Lst<T> add(T element, Lst<T> rest)
     {
         return new Lst<>(element, rest);
