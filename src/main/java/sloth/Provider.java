@@ -1,17 +1,40 @@
 package sloth;
 
+import java.util.ArrayDeque;
+import java.util.Deque;
 import java.util.List;
 import java.util.Objects;
 import java.util.function.Predicate;
 
 public class Provider<T>
 {
+    private final Deque<Integer> consumed = new ArrayDeque<>();
     private final List<T> elements;
     private int index;
 
     public Provider(List<T> elements)
     {
         this.elements = elements;
+    }
+
+    public void require(int count)
+    {
+        this.consumed.push(count);
+    }
+
+    public void free()
+    {
+        this.consumed.pop();
+    }
+
+    private int consumed()
+    {
+        if (this.consumed.isEmpty())
+            return 0;
+        int summed = -this.consumed.peek();
+        for (int integer : this.consumed)
+            summed += integer;
+        return summed;
     }
 
     public int index()
@@ -51,6 +74,11 @@ public class Provider<T>
 
     public boolean hasRemaining(int required)
     {
-        return this.index + required <= this.elements.size();
+        return this.index + required + consumed() <= this.elements.size();
+    }
+
+    public int size()
+    {
+        return this.elements.size();
     }
 }

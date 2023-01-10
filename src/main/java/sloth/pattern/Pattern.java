@@ -11,10 +11,13 @@ public record Pattern(String name, Matcher matcher)
 {
     public List<Match> tryMatch(List<Pattern> patterns, Provider<String> provider, Match match)
     {
-        if (!provider.hasRemaining(this.matcher.getMinimumSize()))
+        int size = this.matcher.getMinimumSize();
+        if (!provider.hasRemaining(size))
             return List.of();
+        provider.require(size);
         Match start = new Match(match.end(), match.end(), null, Map.of());
         List<Match> matches = this.matcher.match(patterns, provider, List.of(start));
+        provider.free();
         return matches.stream()
                 .map(m -> m.extend(this))
                 .toList();
