@@ -9,7 +9,7 @@ import java.util.regex.Pattern;
 
 public record VariableMatcher(String name) implements Matcher
 {
-    private static Predicate<String> VARIABLE_NAME_CHECK = Pattern.compile("[_a-zA-Z][_a-zA-Z0-9]*").asPredicate();
+    private static Predicate<String> VARIABLE_NAME_CHECK = Pattern.compile("[_a-zA-Z]\\w*").asPredicate();
 
     @Override
     public List<Match> match(MatchingContext context, Provider<String> str, List<Match> matches)
