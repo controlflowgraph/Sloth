@@ -27,7 +27,7 @@ class MultiMatcherTest
                 "a",
                 "b"
         ));
-        List<Match> actual = this.matcher.match(List.of(), provider, existing);
+        List<Match> actual = this.matcher.match(new MatchingContext(List.of()), provider, existing);
         assertEquals(expected, actual);
     }
 }

@@ -1,18 +1,19 @@
 package sloth.match;
 
 import sloth.Provider;
-import sloth.pattern.Pattern;
 
 import java.util.List;
 
 public record SequenceMatcher(List<Matcher> matchers) implements Matcher
 {
     @Override
-    public List<Match> match(List<Pattern> patterns, Provider<String> str, List<Match> matches)
+    public List<Match> match(MatchingContext context, Provider<String> str, List<Match> matches)
     {
-        for (Matcher matcher : this.matchers)
+        List<Matcher> matcherList = this.matchers;
+        for (int i = 0; !matches.isEmpty() && i < matcherList.size(); i++)
         {
-            matches = matcher.match(patterns, str, matches);
+            Matcher matcher = matcherList.get(i);
+            matches = matcher.match(context, str, matches);
         }
         return matches;
     }

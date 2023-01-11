@@ -1,6 +1,7 @@
 package sloth;
 
 import sloth.match.Match;
+import sloth.match.MatchingContext;
 import sloth.pattern.Pattern;
 
 import java.util.ArrayList;
@@ -10,13 +11,13 @@ import java.util.Map;
 public class SyntaxMatcher
 {
     private SyntaxMatcher() { }
-    public static List<List<List<Match>>> parse(List<Pattern> patterns, Provider<String> provider)
+    public static List<List<List<Match>>> parse(MatchingContext context, Provider<String> provider)
     {
         List<List<String>> splits = split(provider);
         List<List<List<Match>>> matches = new ArrayList<>();
         for (List<String> split : splits)
         {
-            matches.add(matches(patterns, new Provider<>(split)));
+            matches.add(matches(context, new Provider<>(split)));
         }
         return matches;
     }
@@ -42,7 +43,7 @@ public class SyntaxMatcher
         return lists;
     }
 
-    private static List<List<Match>> matches(List<Pattern> patterns, Provider<String> provider)
+    private static List<List<Match>> matches(MatchingContext context, Provider<String> provider)
     {
         List<List<Match>> iterations = List.of(
                 List.of(new Match(0, 0, null, Map.of()))
@@ -62,10 +63,10 @@ public class SyntaxMatcher
                 }
                 else
                 {
-                    for (Pattern pattern : patterns)
+                    for (Pattern pattern : context.patterns())
                     {
                         Match start = new Match(last.end(), last.end(), null, Map.of());
-                        List<Match> matches = pattern.tryMatch(patterns, provider, start);
+                        List<Match> matches = pattern.tryMatch(context, provider, start);
                         for (Match match : matches)
                         {
                             List<Match> set = new ArrayList<>(iteration);

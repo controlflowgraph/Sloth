@@ -33,7 +33,7 @@ class MatcherTest
         List<Match> existing = List.of(
                 new Match(0, 0, null, Map.of())
         );
-        List<Match> actual = matcher.match(List.of(), provider, existing);
+        List<Match> actual = matcher.match(new MatchingContext(List.of()), provider, existing);
         assertEquals(expected, actual);
     }
 
@@ -55,7 +55,7 @@ class MatcherTest
         List<Match> existing = List.of(
                 new Match(0, 0, null, Map.of())
         );
-        List<Match> actual = matcher.match(List.of(), provider, existing);
+        List<Match> actual = matcher.match(new MatchingContext(List.of()), provider, existing);
         assertEquals(expected, actual);
     }
 }

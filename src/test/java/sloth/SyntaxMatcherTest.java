@@ -19,6 +19,11 @@ class SyntaxMatcherTest
                         return "€";
                     return m.values().get("val").element().toString();
                 }),
+                new Pattern("sub", new SequenceMatcher(List.of(
+                        new WordMatcher("("),
+                        new SubMatcher("s"),
+                        new WordMatcher(")")
+                ))),
                 new Pattern("times", new SequenceMatcher(List.of(
                         new SubMatcher("a"),
                         new WordMatcher("*"),
@@ -59,17 +64,20 @@ class SyntaxMatcherTest
                             return "( let " + m.values().get("n").element() + " be equal to " + m.values().get("v").element() + ")";
                         })
         );
-        Provider<String> provider = new Provider<>(Lexer.lex("let a be equal to 1 * 2 + 3. let b be equal to 5."));
+        Provider<String> provider = new Provider<>(Lexer.lex("let a be equal to ((1 * 2) + 3). let b be equal to 5."));
+        MatchingContext context = new MatchingContext(patterns);
 
-        List<List<List<Match>>> parse = SyntaxMatcher.parse(patterns, provider);
+        List<List<List<Match>>> parse = SyntaxMatcher.parse(context, provider);
+        System.out.println("RESULTS:");
         for (List<List<Match>> lists : parse)
         {
-            System.out.println("=======");
+            System.out.println("\tPART:");
             for (List<Match> matches : lists)
             {
+                System.out.println("\t\tINTERPRETATION:");
                 for (int i = 1; i < matches.size(); i++)
                 {
-                    System.out.println(matches.get(i));
+                    System.out.println("\t\t\t" + matches.get(i));
                 }
             }
         }

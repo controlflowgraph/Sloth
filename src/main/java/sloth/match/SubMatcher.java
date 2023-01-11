@@ -10,16 +10,16 @@ import java.util.Map;
 public record SubMatcher(String name) implements Matcher
 {
     @Override
-    public List<Match> match(List<Pattern> patterns, Provider<String> str, List<Match> matches)
+    public List<Match> match(MatchingContext context, Provider<String> str, List<Match> matches)
     {
         List<Match> filtered = new ArrayList<>();
         for (Match match : matches)
         {
-            for (Pattern pattern : patterns)
+            for (Pattern pattern : context.patterns())
             {
                 str.index(match.end());
                 Match start = new Match(match.end(), match.end(), null, Map.of());
-                List<Match> t = pattern.tryMatch(patterns, str, start);
+                List<Match> t = pattern.tryMatch(context, str, start);
                 for (Match m : t)
                 {
                     filtered.add(match.extend(m.end(), this.name, m));
