@@ -53,7 +53,7 @@ class SyntaxMatcherTest
                 m -> "( let %s be equal to %s )".formatted(m.attempt("n"), m.attempt("v"))
         ));
         context.add(new Pattern("var",
-                new TextMatcher("name")
+                new VariableMatcher("name")
         ));
 //        Provider<String> provider = new Provider<>(Lexer.lex("let a be equal to (1 * 2 + 3). let b be equal to 5."));
         Provider<String> provider = new Provider<>(Lexer.lex("1 * 2 + 3. 1 * 2 + 3"));
