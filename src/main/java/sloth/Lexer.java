@@ -11,7 +11,7 @@ public class Lexer
     {
         return Arrays.stream(text
                         .replaceAll("([(.)])", " $1 ")
-                        .split(" +")
+                        .split("[ \t\n]+")
                 )
                 .filter(not(String::isBlank))
                 .toList()
