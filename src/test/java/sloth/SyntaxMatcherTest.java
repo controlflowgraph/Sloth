@@ -13,42 +13,35 @@ class SyntaxMatcherTest
 {
     public static void main(String[] args)
     {
-        List<Pattern> patterns = List.of(
-                new Pattern("num", new NumMatcher(), m -> {
-                    if(!m.values().containsKey("val"))
-                        return "€";
-                    return m.values().get("val").element().toString();
-                }),
-                new Pattern("sub", new SequenceMatcher(List.of(
+        MatchingContext context = new MatchingContext();
+        context.add(new Pattern("num",
+                new NumMatcher(),
+                m -> m.attempt("val")
+        ));
+        context.add(new Pattern("sub",
+                new SequenceMatcher(List.of(
                         new WordMatcher("("),
                         new SubMatcher("s"),
                         new WordMatcher(")")
-                ))),
-                new Pattern("times", new SequenceMatcher(List.of(
+                ))));
+        context.add(new Pattern("times",
+                new SequenceMatcher(List.of(
                         new SubMatcher("a"),
                         new WordMatcher("*"),
                         new SubMatcher("b")
                 )),
-                        m -> {
-                            if(!m.values().containsKey("a"))
-                                return "( € * € )";
-                            if(!m.values().containsKey("b"))
-                                return "( " + m.values().get("a").element() + " * € ) ";
-                            return "( " + m.values().get("a").element() + " * " + m.values().get("b").element() + ")";
-                        }),
-                new Pattern("plus", new SequenceMatcher(List.of(
+                m -> "( %s * %s )".formatted(m.attempt("a"), m.attempt("b"))
+        ));
+        context.add(new Pattern("plus",
+                new SequenceMatcher(List.of(
                         new SubMatcher("a"),
                         new WordMatcher("+"),
                         new SubMatcher("b")
                 )),
-                        m -> {
-                            if(!m.values().containsKey("a"))
-                                return "( € + € )";
-                            if(!m.values().containsKey("b"))
-                                return "( " + m.values().get("a").element() + " + € ) ";
-                            return "( " + m.values().get("a").element() + " + " + m.values().get("b").element() + ")";
-                        }),
-                new Pattern("let", new SequenceMatcher(List.of(
+                m -> "( %s + %s )".formatted(m.attempt("a"), m.attempt("b"))
+        ));
+        context.add(new Pattern("let",
+                new SequenceMatcher(List.of(
                         new WordMatcher("let"),
                         new TextMatcher("n"),
                         new WordMatcher("be"),
@@ -56,17 +49,12 @@ class SyntaxMatcherTest
                         new WordMatcher("to"),
                         new SubMatcher("v")
                 )),
-                        m -> {
-                            if(!m.values().containsKey("n"))
-                                return "( let ? be equal to ? )";
-                            if(!m.values().containsKey("v"))
-                                return "( " + m.values().get("n").element() + " be equal to ? ) ";
-                            return "( let " + m.values().get("n").element() + " be equal to " + m.values().get("v").element() + ")";
-                        }),
-                new Pattern("var", new TextMatcher("name"))
-        );
+                m -> "( let %s be equal to %s )".formatted(m.attempt("n"), m.attempt("v"))
+        ));
+        context.add(new Pattern("var",
+                new TextMatcher("name")
+        ));
         Provider<String> provider = new Provider<>(Lexer.lex("let a be equal to ((1 * 2) + 3). let b be equal to 5."));
-        MatchingContext context = new MatchingContext(patterns);
 
         List<List<List<Match>>> parse = SyntaxMatcher.parse(context, provider);
         System.out.println("RESULTS:");
