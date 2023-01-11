@@ -24,13 +24,12 @@ public record Pattern(String name, Matcher matcher, Function<Match, String> tree
 
     public List<Match> tryMatch(MatchingContext context, Provider<String> provider, Match match)
     {
-        int size = 1; this.matcher.getMinimumSize();
-        if (!provider.hasRemaining(size))
+        if (!provider.hasRemaining())
             return List.of();
-        provider.require(size);
+
         Match start = new Match(match.end(), match.end(), null, Map.of());
         List<Match> matches = this.matcher.match(context, provider, List.of(start));
-        provider.free();
+
         return matches.stream()
                 .map(m -> m.extend(this))
                 .toList();

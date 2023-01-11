@@ -29,9 +29,4 @@ public record SubMatcher(String name) implements Matcher
         return filtered;
     }
 
-    @Override
-    public int getMinimumSize()
-    {
-        return 0;
-    }
 }

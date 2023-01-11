@@ -27,9 +27,4 @@ public record VariableMatcher(String name) implements Matcher
         return filtered;
     }
 
-    @Override
-    public int getMinimumSize()
-    {
-        return 1;
-    }
 }

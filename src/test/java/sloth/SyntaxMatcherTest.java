@@ -27,8 +27,10 @@ class SyntaxMatcherTest
         context.add(new Pattern("sub",
                 new SequenceMatcher(List.of(
                         new WordMatcher("("),
+                        new Require(1),
                         new SubMatcher("s"),
-                        new WordMatcher(")")
+                        new WordMatcher(")"),
+                        new Require(-1)
                 )),
                 m -> "( %s )".formatted(m.attempt("s")),
                 (m, c) -> {
@@ -38,8 +40,10 @@ class SyntaxMatcherTest
         ));
         context.add(new Pattern("times",
                 new SequenceMatcher(List.of(
+                        new Require(1),
                         new SubMatcher("a"),
                         new WordMatcher("*"),
+                        new Require(-1),
                         new SubMatcher("b")
                 )),
                 m -> "( %s * %s )".formatted(m.attempt("a"), m.attempt("b")),
@@ -53,8 +57,10 @@ class SyntaxMatcherTest
         ));
         context.add(new Pattern("plus",
                 new SequenceMatcher(List.of(
+                        new Require(1),
                         new SubMatcher("a"),
                         new WordMatcher("+"),
+                        new Require(-1),
                         new SubMatcher("b")
                 )),
                 m -> "( %s + %s )".formatted(m.attempt("a"), m.attempt("b")),
@@ -91,18 +97,47 @@ class SyntaxMatcherTest
                     return c.getVariableType(name);
                 }
         ));
+        context.add(new Pattern("set",
+                new SequenceMatcher(List.of(
+                        new WordMatcher("a"),
+                        new WordMatcher("set"),
+                        new WordMatcher("containing"),
+                        new SubMatcher("v"),
+                        new MultiMatcher(false,
+                                new SequenceMatcher(List.of(
+                                        new WordMatcher(","),
+                                        new SubMatcher("v")
+                                ))),
+                        new PossibleMatcher(
+                                new SequenceMatcher(List.of(
+                                        new WordMatcher("and"),
+                                        new SubMatcher("v")
+                                ))
+                        )
+                )),
+                m -> "( set " + Lst.asList(m.values().get("v")) + " )",
+                (m, c) -> {
+                    List<Object> values = Lst.asList(m.values().get("v"));
+                    List<Type> types = values.stream()
+                            .map(Match.class::cast)
+                            .map(v -> v.check(c))
+                            .toList();
+                    return new Type("Set");
+                }
+        ));
 //        Provider<String> provider = new Provider<>(Lexer.lex("let a be equal to (1 * 2 + 3). let b be equal to 5."));
         Provider<String> provider = new Provider<>(Lexer.lex("""
-                let a be equal to 10 + 20.
-                let b be equal to 20 + 30.
-                a + b.
+                let a be equal to 10.
+                let b be equal to 20.
+                let c be equal to a set containing a , b , a + b
                 """));
         System.out.println(provider.rest());
 
         List<List<List<Match>>> parse = SyntaxMatcher.parse(context, provider);
-
+        System.out.println(parse.size() + " SYNTACTIC VALUES FOUND!");
         // clean the starts
         List<List<List<Match>>> cleaned = new ArrayList<>();
+        System.out.println(parse.size() + " CLEANED SYNTACTIC VALUES FOUND!");
         for (List<List<Match>> lists : parse)
         {
             List<List<Match>> cls = new ArrayList<>();
@@ -112,6 +147,8 @@ class SyntaxMatcherTest
             }
             cleaned.add(cls);
         }
+
+        System.out.println(provider.rest());
 
 //        System.out.println("RESULTS:");
 //        for (List<List<Match>> lists : cleaned)

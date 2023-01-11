@@ -23,9 +23,4 @@ public record NumMatcher() implements Matcher
         return filtered;
     }
 
-    @Override
-    public int getMinimumSize()
-    {
-        return 1;
-    }
 }
