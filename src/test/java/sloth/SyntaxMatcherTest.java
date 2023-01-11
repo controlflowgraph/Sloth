@@ -4,6 +4,7 @@ import org.junit.jupiter.api.Test;
 import sloth.match.*;
 import sloth.pattern.Pattern;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
@@ -54,21 +55,67 @@ class SyntaxMatcherTest
         context.add(new Pattern("var",
                 new TextMatcher("name")
         ));
-        Provider<String> provider = new Provider<>(Lexer.lex("let a be equal to ((1 * 2) + 3). let b be equal to 5."));
+//        Provider<String> provider = new Provider<>(Lexer.lex("let a be equal to (1 * 2 + 3). let b be equal to 5."));
+        Provider<String> provider = new Provider<>(Lexer.lex("1 * 2 + 3. 1 * 2 + 3"));
 
         List<List<List<Match>>> parse = SyntaxMatcher.parse(context, provider);
-        System.out.println("RESULTS:");
+        // clean the starts
+        List<List<List<Match>>> cleaned = new ArrayList<>();
         for (List<List<Match>> lists : parse)
         {
-            System.out.println("\tPART:");
+            List<List<Match>> cls = new ArrayList<>();
             for (List<Match> matches : lists)
             {
-                System.out.println("\t\tINTERPRETATION:");
-                for (int i = 1; i < matches.size(); i++)
-                {
-                    System.out.println("\t\t\t" + matches.get(i));
-                }
+                cls.add(matches.subList(1, matches.size()));
+            }
+            cleaned.add(cls);
+        }
+
+//        System.out.println("RESULTS:");
+//        for (List<List<Match>> lists : cleaned)
+//        {
+//            System.out.println("\tPART:");
+//            for (List<Match> matches : lists)
+//            {
+//                System.out.println("\t\tINTERPRETATION:");
+//                for (Match match : matches)
+//                {
+//                    System.out.println("\t\t\t" + match);
+//                }
+//            }
+//        }
+
+        System.out.println("\n\n\n");
+        List<List<Match>> combinations = createCombinations(cleaned);
+        System.out.println("COMBINATIONS: " + combinations.size());
+        for (List<Match> combination : combinations)
+        {
+            System.out.println("\tVERSION:");
+            for (Match match : combination)
+            {
+                System.out.println("\t\t" + match);
             }
         }
+    }
+
+    private static List<List<Match>> createCombinations(List<List<List<Match>>> source)
+    {
+        List<List<Match>> combinations = new ArrayList<>();
+        combinations.add(List.of());
+        for (List<List<Match>> lists : source)
+        {
+            List<List<Match>> added = new ArrayList<>();
+            for (List<Match> list : lists)
+            {
+                for (List<Match> combination : combinations)
+                {
+                    List<Match> matches = new ArrayList<>(combination);
+                    matches.addAll(list);
+                    added.add(matches);
+                }
+            }
+            combinations = added;
+        }
+        return combinations;
     }
 }
