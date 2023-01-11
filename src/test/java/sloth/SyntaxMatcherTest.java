@@ -62,7 +62,8 @@ class SyntaxMatcherTest
                             if(!m.values().containsKey("v"))
                                 return "( " + m.values().get("n").element() + " be equal to ? ) ";
                             return "( let " + m.values().get("n").element() + " be equal to " + m.values().get("v").element() + ")";
-                        })
+                        }),
+                new Pattern("var", new TextMatcher("name"))
         );
         Provider<String> provider = new Provider<>(Lexer.lex("let a be equal to ((1 * 2) + 3). let b be equal to 5."));
         MatchingContext context = new MatchingContext(patterns);
