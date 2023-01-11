@@ -129,7 +129,7 @@ class SyntaxMatcherTest
         Provider<String> provider = new Provider<>(Lexer.lex("""
                 let a be equal to 10.
                 let b be equal to 20.
-                let c be equal to a set containing a , b , a + b
+                let c be equal to a set containing a, b, a + b
                 """));
         System.out.println(provider.rest());
 

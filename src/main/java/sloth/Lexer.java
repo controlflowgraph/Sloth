@@ -10,7 +10,7 @@ public class Lexer
     public static List<String> lex(String text)
     {
         return Arrays.stream(text
-                        .replaceAll("([(.)])", " $1 ")
+                        .replaceAll("(\\W)", " $1 ")
                         .split("[ \t\n]+")
                 )
                 .filter(not(String::isBlank))
