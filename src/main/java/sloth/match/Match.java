@@ -1,5 +1,7 @@
 package sloth.match;
 
+import sloth.checking.CheckingContext;
+import sloth.checking.Type;
 import sloth.pattern.Pattern;
 
 import java.util.*;
@@ -54,5 +56,10 @@ public record Match(int start, int end, Pattern pattern, Map<String, Lst<Object>
                 ", " + pattern +
                 ", " + values +
                 '}';
+    }
+
+    public Type check(CheckingContext context)
+    {
+        return this.pattern.validator().validate(this, context);
     }
 }

@@ -81,4 +81,9 @@ public class Provider<T>
     {
         return this.elements.size();
     }
+
+    public String rest()
+    {
+        return this.elements.subList(this.index, this.elements.size()).toString();
+    }
 }
