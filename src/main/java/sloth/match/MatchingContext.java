@@ -18,4 +18,14 @@ public record MatchingContext(List<Pattern> patterns, Map<String, Meta> info)
     {
         this(patterns, new HashMap<>());
     }
+
+    public void add(Pattern pattern)
+    {
+        this.patterns.add(pattern);
+    }
+
+    public void add(Meta info)
+    {
+        this.info.put(info.name(), info);
+    }
 }
