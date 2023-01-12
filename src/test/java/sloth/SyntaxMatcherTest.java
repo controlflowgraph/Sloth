@@ -118,7 +118,7 @@ class SyntaxMatcherTest
                         new WordMatcher("set"),
                         new WordMatcher("containing"),
                         new SubMatcher("v"),
-                        new MultiMatcher(false,
+                        new MultiMatcher(true,
                                 new SequenceMatcher(List.of(
                                         new WordMatcher(","),
                                         new SubMatcher("v")
@@ -137,16 +137,56 @@ class SyntaxMatcherTest
                             .stream()
                             .map(Match.class::cast)
                             .toList();
-                    for (Match value : values)
-                    {
-                        if (c.getPrecedence(value.pattern().name()) < pre)
-                            throw new RuntimeException("Precedence mismatch!");
-                    }
-
+                    boolean mismatch = values.stream()
+                            .map(v -> c.getPrecedence(v.pattern().name()))
+                            .map(v -> v < pre)
+                            .reduce(false, (a, b) -> a || b);
+                    if (mismatch)
+                        throw new RuntimeException("Precedence mismatch!");
 
                     List<Type> types = values.stream()
                             .map(v -> v.check(c))
                             .toList();
+                    return new Type("Set");
+                }
+        ));
+        context.add(new Pattern("set-union",
+                new SequenceMatcher(List.of(
+                        new WordMatcher("the"),
+                        new WordMatcher("union"),
+                        new WordMatcher("of"),
+                        new SubMatcher("v"),
+                        new MultiMatcher(true,
+                                new SequenceMatcher(List.of(
+                                        new WordMatcher(","),
+                                        new SubMatcher("v")
+                                ))),
+                        new PossibleMatcher(
+                                new SequenceMatcher(List.of(
+                                        new WordMatcher("and"),
+                                        new SubMatcher("v")
+                                ))
+                        )
+                )),
+                m -> "( union " + Lst.asList(m.values().get("v")) + " )",
+                (m, c) -> {
+                    int pre = c.getPrecedence("set-union");
+                    List<Match> values = Lst.asList(m.values().get("v"))
+                            .stream()
+                            .map(Match.class::cast)
+                            .toList();
+                    boolean mismatch = values.stream()
+                            .map(v -> c.getPrecedence(v.pattern().name()))
+                            .map(v -> v <= pre)
+                            .reduce(false, (a, b) -> a || b);
+                    if (mismatch)
+                        throw new RuntimeException("Precedence mismatch!");
+
+                    boolean mismatchingTypes = values.stream()
+                            .map(v -> v.check(c))
+                            .anyMatch(v -> !v.name().equals("Set"));
+                    if (mismatchingTypes)
+                        throw new RuntimeException("Only sets in union allowed!");
                     return new Type("Set");
                 }
         ));
@@ -156,7 +196,14 @@ class SyntaxMatcherTest
 //                let b be equal to 20.
 //                let c be equal to a set containing a, b, a + b
 //                """));
-        Provider<String> provider = new Provider<>(Lexer.lex("123 * 456 + 10 * 1 * 2"));
+
+        Provider<String> provider = new Provider<>(Lexer.lex("""
+                let a be equal to a set containing 10, 20 and 30.
+                let b be equal to a set containing 30 and 40.
+                let c be equal to the union of a, a set containing 123 and 456 and b.
+                """));
+
+//        Provider<String> provider = new Provider<>(Lexer.lex("123 * 456 + 10 * 1 * 2"));
         System.out.println(provider.rest());
 
         List<List<List<Match>>> parse = SyntaxMatcher.parse(context, provider);
@@ -202,10 +249,9 @@ class SyntaxMatcherTest
                 .add("sub", List.of("times"), List.of())
                 .add("num", List.of("times"), List.of())
                 .add("var", List.of("times"), List.of())
+                .add("set-union", List.of("let"), List.of("set"))
                 .add("set", List.of("let"), List.of("plus"))
                 .compile();
-        System.out.println("TIMES: " + graph.get("times"));
-        System.out.println("NUMBER: " + graph.get("num"));
         for (List<Match> combination : combinations)
         {
 //            System.out.println("\tVERSION:");
