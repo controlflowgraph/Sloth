@@ -1,6 +1,10 @@
 package sloth.checking;
 
 import java.util.*;
+import java.util.function.Predicate;
+import java.util.stream.Collectors;
+
+import static java.util.function.Predicate.not;
 
 public class PrecedenceGraph
 {
@@ -25,8 +29,14 @@ public class PrecedenceGraph
     public PrecedenceGraph compile()
     {
         this.precedences.clear();
-        Set<String> visited = new HashSet<>();
         Set<String> missing = this.mapping.keySet();
+        Set<String> m = this.mapping.values()
+                .stream()
+                .flatMap(List::stream)
+                .filter(not(missing::contains))
+                .collect(Collectors.toSet());
+        if(!m.isEmpty())
+            throw new RuntimeException("Undefined dependencies! " + m);
         int iteration = 0;
         boolean changed;
         do
@@ -36,18 +46,17 @@ public class PrecedenceGraph
             for (String s : missing)
             {
                 List<String> required = this.mapping.get(s);
-                boolean isResolved = required.stream()
-                        .map(visited::contains)
-                        .reduce(true, (a, b) -> a && b);
-                if(isResolved)
+                boolean isMissing = required.stream()
+                        .map(missing::contains)
+                        .reduce(false, (a, b) -> a || b);
+                if(isMissing)
                 {
-                    visited.add(s);
-                    this.precedences.put(s, iteration);
-                    changed = true;
+                    miss.add(s);
                 }
                 else
                 {
-                    miss.add(s);
+                    this.precedences.put(s, iteration);
+                    changed = true;
                 }
             }
             iteration++;
@@ -55,7 +64,21 @@ public class PrecedenceGraph
         }
         while (changed);
         if(!missing.isEmpty())
-            throw new RuntimeException("There are some patterns remaining: " + missing + "!");
+        {
+            StringBuilder text = new StringBuilder();
+            for (String s : missing)
+            {
+                text.append("\n")
+                        .append(s)
+                        .append(" -> ")
+                        .append(this.mapping.get(s)
+                                .stream()
+                                .filter(not(this.precedences::containsKey))
+                                .toList()
+                        );
+            }
+            throw new RuntimeException("There are some patterns remaining: " + text);
+        }
         return this;
     }
 

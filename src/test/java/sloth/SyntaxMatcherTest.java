@@ -54,7 +54,7 @@ class SyntaxMatcherTest
                     Match mb = (Match) m.values().get("b").element();
                     int pa = c.getPrecedence(ma.pattern().name());
                     int pb = c.getPrecedence(mb.pattern().name());
-                    if (pa < pre || pb < pre)
+                    if (pa < pre || pb <= pre)
                         throw new RuntimeException("Precedence mismatch!");
                     Type a = ma.check(c);
                     Type b = mb.check(c);
@@ -78,7 +78,7 @@ class SyntaxMatcherTest
                     Match mb = (Match) m.values().get("b").element();
                     int pa = c.getPrecedence(ma.pattern().name());
                     int pb = c.getPrecedence(mb.pattern().name());
-                    if (pa < pre || pb < pre)
+                    if (pa < pre || pb <= pre)
                         throw new RuntimeException("Precedence mismatch!");
                     Type a = ma.check(c);
                     Type b = mb.check(c);
@@ -156,7 +156,7 @@ class SyntaxMatcherTest
 //                let b be equal to 20.
 //                let c be equal to a set containing a, b, a + b
 //                """));
-        Provider<String> provider = new Provider<>(Lexer.lex("1 * (2 + 3)"));
+        Provider<String> provider = new Provider<>(Lexer.lex("123 * 456 + 10 * 1 * 2"));
         System.out.println(provider.rest());
 
         List<List<List<Match>>> parse = SyntaxMatcher.parse(context, provider);
@@ -204,6 +204,8 @@ class SyntaxMatcherTest
                 .add("var", List.of("times"), List.of())
                 .add("set", List.of("let"), List.of("plus"))
                 .compile();
+        System.out.println("TIMES: " + graph.get("times"));
+        System.out.println("NUMBER: " + graph.get("num"));
         for (List<Match> combination : combinations)
         {
 //            System.out.println("\tVERSION:");
