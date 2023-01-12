@@ -6,10 +6,17 @@ import java.util.Deque;
 public class CheckingContext
 {
     private final Deque<Scope> scopes = new ArrayDeque<>();
+    private final PrecedenceGraph graph;
 
-    public CheckingContext()
+    public CheckingContext(PrecedenceGraph graph)
     {
+        this.graph = graph;
         this.scopes.add(new Scope("global"));
+    }
+
+    public int getPrecedence(String name)
+    {
+        return this.graph.get(name);
     }
 
     public boolean isVariableDefined(String name)

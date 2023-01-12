@@ -2,6 +2,7 @@ package sloth;
 
 import org.junit.jupiter.api.Test;
 import sloth.checking.CheckingContext;
+import sloth.checking.PrecedenceGraph;
 import sloth.checking.Type;
 import sloth.match.*;
 import sloth.pattern.Pattern;
@@ -48,8 +49,15 @@ class SyntaxMatcherTest
                 )),
                 m -> "( %s * %s )".formatted(m.attempt("a"), m.attempt("b")),
                 (m, c) -> {
-                    Type a = ((Match) m.values().get("a").element()).check(c);
-                    Type b = ((Match) m.values().get("b").element()).check(c);
+                    int pre = c.getPrecedence("times");
+                    Match ma = (Match) m.values().get("a").element();
+                    Match mb = (Match) m.values().get("b").element();
+                    int pa = c.getPrecedence(ma.pattern().name());
+                    int pb = c.getPrecedence(mb.pattern().name());
+                    if (pa < pre || pb < pre)
+                        throw new RuntimeException("Precedence mismatch!");
+                    Type a = ma.check(c);
+                    Type b = mb.check(c);
                     if (a.equals(number) && b.equals(number))
                         return number;
                     throw new RuntimeException("Must be numbers!");
@@ -65,8 +73,15 @@ class SyntaxMatcherTest
                 )),
                 m -> "( %s + %s )".formatted(m.attempt("a"), m.attempt("b")),
                 (m, c) -> {
-                    Type a = ((Match) m.values().get("a").element()).check(c);
-                    Type b = ((Match) m.values().get("b").element()).check(c);
+                    int pre = c.getPrecedence("plus");
+                    Match ma = (Match) m.values().get("a").element();
+                    Match mb = (Match) m.values().get("b").element();
+                    int pa = c.getPrecedence(ma.pattern().name());
+                    int pb = c.getPrecedence(mb.pattern().name());
+                    if (pa < pre || pb < pre)
+                        throw new RuntimeException("Precedence mismatch!");
+                    Type a = ma.check(c);
+                    Type b = mb.check(c);
                     if (a.equals(number) && b.equals(number))
                         return number;
                     throw new RuntimeException("Must be numbers!");
@@ -117,20 +132,31 @@ class SyntaxMatcherTest
                 )),
                 m -> "( set " + Lst.asList(m.values().get("v")) + " )",
                 (m, c) -> {
-                    List<Object> values = Lst.asList(m.values().get("v"));
-                    List<Type> types = values.stream()
+                    int pre = c.getPrecedence("set");
+                    List<Match> values = Lst.asList(m.values().get("v"))
+                            .stream()
                             .map(Match.class::cast)
+                            .toList();
+                    for (Match value : values)
+                    {
+                        if (c.getPrecedence(value.pattern().name()) < pre)
+                            throw new RuntimeException("Precedence mismatch!");
+                    }
+
+
+                    List<Type> types = values.stream()
                             .map(v -> v.check(c))
                             .toList();
                     return new Type("Set");
                 }
         ));
 //        Provider<String> provider = new Provider<>(Lexer.lex("let a be equal to (1 * 2 + 3). let b be equal to 5."));
-        Provider<String> provider = new Provider<>(Lexer.lex("""
-                let a be equal to 10.
-                let b be equal to 20.
-                let c be equal to a set containing a, b, a + b
-                """));
+//        Provider<String> provider = new Provider<>(Lexer.lex("""
+//                let a be equal to 10.
+//                let b be equal to 20.
+//                let c be equal to a set containing a, b, a + b
+//                """));
+        Provider<String> provider = new Provider<>(Lexer.lex("1 * (2 + 3)"));
         System.out.println(provider.rest());
 
         List<List<List<Match>>> parse = SyntaxMatcher.parse(context, provider);
@@ -169,6 +195,15 @@ class SyntaxMatcherTest
 
         List<List<Match>> valid = new ArrayList<>();
         System.out.println("COMBINATIONS: " + combinations.size());
+        PrecedenceGraph graph = new PrecedenceGraph()
+                .add("let", List.of(), List.of())
+                .add("plus", List.of("let"), List.of())
+                .add("times", List.of("plus"), List.of())
+                .add("sub", List.of("times"), List.of())
+                .add("num", List.of("times"), List.of())
+                .add("var", List.of("times"), List.of())
+                .add("set", List.of("let"), List.of("plus"))
+                .compile();
         for (List<Match> combination : combinations)
         {
 //            System.out.println("\tVERSION:");
@@ -177,7 +212,7 @@ class SyntaxMatcherTest
 //                System.out.println("\t\t" + match);
 //            }
 
-            CheckingContext check = new CheckingContext();
+            CheckingContext check = new CheckingContext(graph);
             try
             {
                 for (Match match : combination)
