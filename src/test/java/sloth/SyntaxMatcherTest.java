@@ -7,9 +7,7 @@ import sloth.checking.Type;
 import sloth.match.*;
 import sloth.pattern.Pattern;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -204,7 +202,6 @@ class SyntaxMatcherTest
                 """));
 
 //        Provider<String> provider = new Provider<>(Lexer.lex("123 * 456 + 10 * 1 * 2"));
-        System.out.println(provider.rest());
 
         List<List<List<Match>>> parse = SyntaxMatcher.parse(context, provider);
         System.out.println(parse.size() + " SYNTACTIC VALUES FOUND!");
@@ -221,27 +218,6 @@ class SyntaxMatcherTest
             cleaned.add(cls);
         }
 
-        System.out.println(provider.rest());
-
-//        System.out.println("RESULTS:");
-//        for (List<List<Match>> lists : cleaned)
-//        {
-//            System.out.println("\tPART:");
-//            for (List<Match> matches : lists)
-//            {
-//                System.out.println("\t\tINTERPRETATION:");
-//                for (Match match : matches)
-//                {
-//                    System.out.println("\t\t\t" + match);
-//                }
-//            }
-//        }
-
-        System.out.println("\n\n\n");
-        List<List<Match>> combinations = createCombinations(cleaned);
-
-        List<List<Match>> valid = new ArrayList<>();
-        System.out.println("COMBINATIONS: " + combinations.size());
         PrecedenceGraph graph = new PrecedenceGraph()
                 .add("let", List.of(), List.of())
                 .add("plus", List.of("let"), List.of())
@@ -252,62 +228,57 @@ class SyntaxMatcherTest
                 .add("set-union", List.of("let"), List.of("set"))
                 .add("set", List.of("let"), List.of("plus"))
                 .compile();
-        for (List<Match> combination : combinations)
-        {
-//            System.out.println("\tVERSION:");
-//            for (Match match : combination)
-//            {
-//                System.out.println("\t\t" + match);
-//            }
 
-            CheckingContext check = new CheckingContext(graph);
-            try
-            {
-                for (Match match : combination)
-                {
-                    match.check(check);
-                }
-                System.out.println("\t=> Valid!");
-                valid.add(combination);
-            }
-            catch (Exception e)
-            {
-                System.out.println("\t=> " + e.getMessage());
-            }
-            System.out.println();
-        }
-        System.out.println();
-        System.out.println("FOUND " + valid.size() + " VALID INTERPRETATIONS!");
-        System.out.println();
-        for (List<Match> matches : valid)
-        {
-            System.out.println("INTERPRETATION:");
-            for (Match match : matches)
-            {
-                System.out.println("\t" + match);
-            }
-            System.out.println();
-        }
-    }
+        List<List<Match>> interpretations = new ArrayList<>();
+        List<CheckingContext> contexts = new ArrayList<>();
+        interpretations.add(List.of());
+        contexts.add(new CheckingContext(graph));
 
-    private static List<List<Match>> createCombinations(List<List<List<Match>>> source)
-    {
-        List<List<Match>> combinations = new ArrayList<>();
-        combinations.add(List.of());
-        for (List<List<Match>> lists : source)
+
+        for (List<List<Match>> lists : cleaned)
         {
-            List<List<Match>> added = new ArrayList<>();
+            List<List<Match>> interpreted = new ArrayList<>();
+            List<CheckingContext> cont = new ArrayList<>();
+
             for (List<Match> list : lists)
             {
-                for (List<Match> combination : combinations)
+                for (int i = 0; i < interpretations.size(); i++)
                 {
-                    List<Match> matches = new ArrayList<>(combination);
-                    matches.addAll(list);
-                    added.add(matches);
+                    CheckingContext current = contexts.get(i).clone();
+                    try
+                    {
+                        for (Match match : list)
+                        {
+                            match.check(current);
+                        }
+                        List<Match> interpretation = new ArrayList<>(interpretations.get(i));
+                        interpretation.addAll(list);
+                        interpreted.add(interpretation);
+                        cont.add(current);
+                    }
+                    catch (Exception e)
+                    {
+                        System.out.println("=> " + e.getMessage());
+                    }
                 }
             }
-            combinations = added;
+            interpretations = interpreted;
+            contexts = cont;
         }
-        return combinations;
+
+        printInterpretations(interpretations);
+    }
+
+    private static void printInterpretations(List<List<Match>> interpretations)
+    {
+        System.out.println(interpretations.size() + " interpretations found!");
+        for (List<Match> interpretation : interpretations)
+        {
+            for (Match match : interpretation)
+            {
+                System.out.println(match);
+            }
+            System.out.println();
+        }
     }
 }

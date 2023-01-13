@@ -47,8 +47,7 @@ syntactically. As a countermeasure periods can be put in the code to restrict th
 over the next period. This still leaves the possibility of a lot of combinations when using multiple statements since
 any of the combination could be the correct / intended one.
 
-## Plans
-
+## Optimizations
 To further minimize the possible combinations that are being generated only valid statements will be combined.
 
 ```
@@ -76,9 +75,10 @@ let b be equal to (30 + 40).
 
 The fact that `(let a be equal to 10) + 20` is invalid makes all possible combinations that contain that
 statement invalid (same with the second statement).
-Switching from a naive implementation of the combination generation to an iteratively filtering system will reduce the
+Switching from a naive implementation of the combination generation to an iteratively filtering system reduces the
 resource requirements of the system.
 
+## Plans
 The same concept of reducing the number of possible interpretations by checking can be applied during
 the syntax matching stage. The fusion of the syntax matching and the semantic matching would reduce the number of
 possibilities which arise from the introduction of variables.

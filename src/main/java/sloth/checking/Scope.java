@@ -28,4 +28,12 @@ public record Scope(String name, Map<String, Type> variables)
             throw new RuntimeException("Variable " + name + " not defined in scope!");
         return this.variables.get(name);
     }
+
+    public Scope clone()
+    {
+        return new Scope(
+                this.name,
+                new HashMap<>(this.variables)
+        );
+    }
 }

@@ -1,17 +1,37 @@
 package sloth.checking;
 
 import java.util.ArrayDeque;
+import java.util.Collection;
 import java.util.Deque;
 
 public class CheckingContext
 {
-    private final Deque<Scope> scopes = new ArrayDeque<>();
+    private final Deque<Scope> scopes;
     private final PrecedenceGraph graph;
+    private CheckingContext(PrecedenceGraph graph, Deque<Scope> scopes)
+    {
+        this.graph = graph;
+        this.scopes = scopes;
+    }
 
     public CheckingContext(PrecedenceGraph graph)
     {
-        this.graph = graph;
+        this(graph, new ArrayDeque<>());
         this.scopes.add(new Scope("global"));
+    }
+
+    public CheckingContext clone()
+    {
+        return new CheckingContext(
+                this.graph,
+                this.scopes.stream()
+                        .map(Scope::clone)
+                        .collect(
+                                ArrayDeque::new,
+                                ArrayDeque::add,
+                                (a, b) -> {throw new RuntimeException();}
+                        )
+        );
     }
 
     public int getPrecedence(String name)
