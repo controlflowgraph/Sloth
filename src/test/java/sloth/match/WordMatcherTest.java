@@ -25,12 +25,12 @@ class WordMatcherTest
     void shouldMatchWhenWordFollows()
     {
         List<Match> expected = List.of(
-                new Match(0, 3, null, Map.of())
+                new Match(0, 3, null, Map.of(), false)
         );
         Provider<String> provider = getProvider();
         List<Match> matches = List.of(
-                new Match(0, 0, null, Map.of()),
-                new Match(0, 2, null, Map.of())
+                new Match(0, 0, null, Map.of(), false),
+                new Match(0, 2, null, Map.of(), false)
         );
         List<Match> actual = this.matcher.match(new MatchingContext(List.of()), provider, matches);
         assertEquals(expected, actual);

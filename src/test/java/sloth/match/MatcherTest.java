@@ -22,8 +22,8 @@ class MatcherTest
     void shouldMatchSimpleStructure()
     {
         List<Match> expected = List.of(
-                new Match(0, 5, null, Map.of()),
-                new Match(0, 6, null, Map.of())
+                new Match(0, 5, null, Map.of(), false),
+                new Match(0, 6, null, Map.of(), false)
         );
         Matcher matcher = new SequenceMatcher(List.of(
                 new MultiMatcher(false, new WordMatcher("a")),
@@ -31,7 +31,7 @@ class MatcherTest
         ));
         Provider<String> provider = of("a a a a b b");
         List<Match> existing = List.of(
-                new Match(0, 0, null, Map.of())
+                new Match(0, 0, null, Map.of(), false)
         );
         List<Match> actual = matcher.match(new MatchingContext(List.of()), provider, existing);
         assertEquals(expected, actual);
@@ -41,9 +41,9 @@ class MatcherTest
     void shouldMatchSimpleStructure2()
     {
         List<Match> expected = List.of(
-                new Match(0, 2, null, Map.of("v", Lst.of(List.of("a")))),
-                new Match(0, 4, null, Map.of("v", Lst.of(List.of("a", "b")))),
-                new Match(0, 6, null, Map.of("v", Lst.of(List.of("a", "b", "c"))))
+                new Match(0, 2, null, Map.of("v", Lst.of(List.of("a"))), false),
+                new Match(0, 4, null, Map.of("v", Lst.of(List.of("a", "b"))), false),
+                new Match(0, 6, null, Map.of("v", Lst.of(List.of("a", "b", "c"))), false)
         );
         Matcher matcher = new MultiMatcher(false,
                 new SequenceMatcher(List.of(
@@ -53,7 +53,7 @@ class MatcherTest
         );
         Provider<String> provider = of("a a a b a c");
         List<Match> existing = List.of(
-                new Match(0, 0, null, Map.of())
+                new Match(0, 0, null, Map.of(), false)
         );
         List<Match> actual = matcher.match(new MatchingContext(List.of()), provider, existing);
         assertEquals(expected, actual);

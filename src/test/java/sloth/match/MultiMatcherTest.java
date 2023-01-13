@@ -16,11 +16,11 @@ class MultiMatcherTest
     void shouldRetainOldMatches()
     {
         List<Match> expected = List.of(
-                new Match(0, 1, null, Map.of()),
-                new Match(0, 2, null, Map.of())
+                new Match(0, 1, null, Map.of(), false),
+                new Match(0, 2, null, Map.of(), false)
         );
         List<Match> existing = List.of(
-                new Match(0, 0, null, Map.of())
+                new Match(0, 0, null, Map.of(), false)
         );
         Provider<String> provider = new Provider<>(List.of(
                 "a",

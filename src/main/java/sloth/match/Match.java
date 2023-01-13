@@ -9,8 +9,17 @@ import java.util.function.Function;
 
 import static sloth.match.Lst.add;
 
-public record Match(int start, int end, Pattern pattern, Map<String, Lst<Object>> values)
+public record Match(int start, int end, Pattern pattern, Map<String, Lst<Object>> values, boolean empty)
 {
+    public static Match getStart(int position)
+    {
+        return new Match(position, position, null, Map.of(), true);
+    }
+
+    private Match(int start, int end, Pattern pattern, Map<String, Lst<Object>> values)
+    {
+        this(start, end, pattern, values, false);
+    }
     public Match extend(int end)
     {
         return new Match(this.start, end, this.pattern, this.values);

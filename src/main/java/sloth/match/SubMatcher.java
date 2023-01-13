@@ -18,7 +18,7 @@ public record SubMatcher(String name) implements Matcher
             for (Pattern pattern : context.patterns())
             {
                 str.index(match.end());
-                Match start = new Match(match.end(), match.end(), null, Map.of());
+                Match start = Match.getStart(match.end());
                 List<Match> t = pattern.tryMatch(context, str, start);
                 for (Match m : t)
                 {

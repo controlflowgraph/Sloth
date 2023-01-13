@@ -25,10 +25,10 @@ class TextMatcherTest
     void shouldNotAlterOldMatch()
     {
         List<Match> expected = List.of(
-                new Match(0, 2, null, Map.of("v", new Lst<>("test", null)))
+                new Match(0, 2, null, Map.of("v", new Lst<>("test", null)), false)
         );
         List<Match> existing = List.of(
-                new Match(0, 1, null, Map.of())
+                new Match(0, 1, null, Map.of(), false)
         );
         Provider<String> provider = getProvider();
         List<Match> actual = this.matcher.match(new MatchingContext(List.of()), provider, existing);

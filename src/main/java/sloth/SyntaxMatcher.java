@@ -46,7 +46,7 @@ public class SyntaxMatcher
     private static List<List<Match>> matches(MatchingContext context, Provider<String> provider)
     {
         List<List<Match>> iterations = List.of(
-                List.of(new Match(0, 0, null, Map.of()))
+                List.of(Match.getStart(0))
         );
         boolean changed;
         do
@@ -65,7 +65,7 @@ public class SyntaxMatcher
                 {
                     for (Pattern pattern : context.patterns())
                     {
-                        Match start = new Match(last.end(), last.end(), null, Map.of());
+                        Match start = Match.getStart(last.end());
                         List<Match> matches = pattern.tryMatch(context, provider, start);
                         for (Match match : matches)
                         {
