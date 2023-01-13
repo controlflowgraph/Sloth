@@ -2,19 +2,20 @@ package sloth;
 
 import sloth.match.Match;
 import sloth.match.MatchingContext;
+import sloth.model.Part;
+import sloth.model.Segment;
 import sloth.pattern.Pattern;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Map;
 
 public class SyntaxMatcher
 {
     private SyntaxMatcher() { }
-    public static List<List<List<Match>>> parse(MatchingContext context, Provider<String> provider)
+    public static List<Part> parse(MatchingContext context, Provider<String> provider)
     {
         List<List<String>> splits = split(provider);
-        List<List<List<Match>>> matches = new ArrayList<>();
+        List<Part> matches = new ArrayList<>();
         for (List<String> split : splits)
         {
             matches.add(matches(context, new Provider<>(split)));
@@ -43,19 +44,19 @@ public class SyntaxMatcher
         return lists;
     }
 
-    private static List<List<Match>> matches(MatchingContext context, Provider<String> provider)
+    private static Part matches(MatchingContext context, Provider<String> provider)
     {
-        List<List<Match>> iterations = List.of(
-                List.of(Match.getStart(0))
+        List<Segment> iterations = List.of(
+                new Segment(List.of(Match.getStart(0)))
         );
         boolean changed;
         do
         {
             changed = false;
-            List<List<Match>> iterated = new ArrayList<>();
-            for (List<Match> iteration : iterations)
+            List<Segment> iterated = new ArrayList<>();
+            for (Segment iteration : iterations)
             {
-                Match last = iteration.get(iteration.size() - 1);
+                Match last = iteration.matches().get(iteration.matches().size() - 1);
                 provider.index(last.end());
                 if(last.end() == provider.size())
                 {
@@ -69,9 +70,9 @@ public class SyntaxMatcher
                         List<Match> matches = pattern.tryMatch(context, provider, start);
                         for (Match match : matches)
                         {
-                            List<Match> set = new ArrayList<>(iteration);
+                            List<Match> set = new ArrayList<>(iteration.matches());
                             set.add(match);
-                            iterated.add(set);
+                            iterated.add(new Segment(set));
                             changed = true;
                         }
                     }
@@ -80,6 +81,6 @@ public class SyntaxMatcher
             iterations = iterated;
         }
         while (changed);
-        return iterations;
+        return new Part(iterations);
     }
 }

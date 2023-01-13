@@ -3,6 +3,7 @@ package sloth;
 import sloth.checking.PrecedenceGraph;
 import sloth.checking.Type;
 import sloth.match.*;
+import sloth.model.Interpretation;
 import sloth.pattern.Pattern;
 
 import java.util.List;
@@ -203,6 +204,6 @@ class SlothParserTest
                 let b be equal to a set containing 30 and 40.
                 let c be equal to the union of a, a set containing 123 and 456 and b.
                 """;
-        List<List<Match>> parse = SlothParser.parse(text, context, graph);
+        List<Interpretation> parse = SlothParser.parse(text, context, graph);
     }
 }

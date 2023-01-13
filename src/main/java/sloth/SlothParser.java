@@ -4,6 +4,9 @@ import sloth.checking.CheckingContext;
 import sloth.checking.PrecedenceGraph;
 import sloth.match.Match;
 import sloth.match.MatchingContext;
+import sloth.model.Interpretation;
+import sloth.model.Part;
+import sloth.model.Segment;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -16,45 +19,41 @@ public class SlothParser
     {
     }
 
-    public static List<List<Match>> parse(String text, MatchingContext context, PrecedenceGraph graph)
+    public static List<Interpretation> parse(String text, MatchingContext context, PrecedenceGraph graph)
     {
         Provider<String> provider = new Provider<>(Lexer.lex(text));
-        List<List<List<Match>>> parse = SyntaxMatcher.parse(context, provider);
-        List<List<List<Match>>> cleaned = removeEmptyMatches(parse);
+        List<Part> parse = SyntaxMatcher.parse(context, provider);
+        List<Part> cleaned = removeEmptyMatches(parse);
         System.out.println(cleaned.size() + " SYNTACTIC VALUES FOUND!");
-        List<List<Match>> interpretations = processCombinations(cleaned, graph);
+        List<Interpretation> interpretations = processCombinations(cleaned, graph);
         printInterpretations(interpretations);
         return interpretations;
     }
 
-    private static List<List<Match>> processCombinations(List<List<List<Match>>> matches, PrecedenceGraph graph)
+    private static List<Interpretation> processCombinations(List<Part> matches, PrecedenceGraph graph)
     {
-        List<List<Match>> interpretations = new ArrayList<>();
-        List<CheckingContext> contexts = new ArrayList<>();
-        interpretations.add(List.of());
-        contexts.add(new CheckingContext(graph));
+        List<Interpretation> interpretations = new ArrayList<>();
+        interpretations.add(new Interpretation(List.of(), new CheckingContext(graph)));
 
 
-        for (List<List<Match>> lists : matches)
+        for (Part lists : matches)
         {
-            List<List<Match>> interpreted = new ArrayList<>();
-            List<CheckingContext> cont = new ArrayList<>();
+            List<Interpretation> interpreted = new ArrayList<>();
 
-            for (List<Match> list : lists)
+            for (Segment list : lists.segments())
             {
-                for (int i = 0; i < interpretations.size(); i++)
+                for (Interpretation value : interpretations)
                 {
-                    CheckingContext current = contexts.get(i).clone();
+                    CheckingContext current = value.context().clone();
                     try
                     {
-                        for (Match match : list)
+                        for (Match match : list.matches())
                         {
                             match.check(current);
                         }
-                        List<Match> interpretation = new ArrayList<>(interpretations.get(i));
-                        interpretation.addAll(list);
-                        interpreted.add(interpretation);
-                        cont.add(current);
+                        List<Match> interpretation = new ArrayList<>(value.matches());
+                        interpretation.addAll(list.matches());
+                        interpreted.add(new Interpretation(interpretation, current));
                     }
                     catch (Exception e)
                     {
@@ -63,33 +62,35 @@ public class SlothParser
                 }
             }
             interpretations = interpreted;
-            contexts = cont;
         }
         return interpretations;
     }
-    private static List<List<List<Match>>> removeEmptyMatches(List<List<List<Match>>> pa)
+
+    private static List<Part> removeEmptyMatches(List<Part> parts)
     {
-        List<List<List<Match>>> cleaned = new ArrayList<>();
-        for (List<List<Match>> lists : pa)
+        List<Part> cleaned = new ArrayList<>();
+        for (Part part : parts)
         {
-            List<List<Match>> cls = new ArrayList<>();
-            for (List<Match> matches : lists)
+            List<Segment> cls = new ArrayList<>();
+            for (Segment segment : part.segments())
             {
-                cls.add(matches.stream()
+                cls.add(new Segment(segment
+                        .matches()
+                        .stream()
                         .filter(not(Match::empty))
-                        .toList());
+                        .toList()));
             }
-            cleaned.add(cls);
+            cleaned.add(new Part(cls));
         }
         return cleaned;
     }
 
-    private static void printInterpretations(List<List<Match>> interpretations)
+    private static void printInterpretations(List<Interpretation> interpretations)
     {
         System.out.println(interpretations.size() + " interpretations found!");
-        for (List<Match> interpretation : interpretations)
+        for (Interpretation interpretation : interpretations)
         {
-            for (Match match : interpretation)
+            for (Match match : interpretation.matches())
             {
                 System.out.println(match);
             }
