@@ -9,6 +9,7 @@ import sloth.pattern.Pattern;
 
 import java.util.*;
 
+import static java.util.function.Predicate.not;
 import static org.junit.jupiter.api.Assertions.*;
 
 class SyntaxMatcherTest
@@ -213,7 +214,9 @@ class SyntaxMatcherTest
             List<List<Match>> cls = new ArrayList<>();
             for (List<Match> matches : lists)
             {
-                cls.add(matches.subList(1, matches.size()));
+                cls.add(matches.stream()
+                        .filter(not(Match::empty))
+                        .toList());
             }
             cleaned.add(cls);
         }
