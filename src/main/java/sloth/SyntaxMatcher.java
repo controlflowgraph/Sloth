@@ -18,8 +18,10 @@ public class SyntaxMatcher
         List<Part> matches = new ArrayList<>();
         for (List<String> split : splits)
         {
+            context.cache().clear();
             matches.add(matches(context, new Provider<>(split)));
         }
+        System.out.println(matches);
         return matches;
     }
 

@@ -31,6 +31,223 @@ class SlothParserTest
                         new Require(-1)
                 )),
                 m -> "( %s )".formatted(m.attempt("s")),
+                (m, c) -> null
+        ));
+
+        context.add(new Pattern("tuple",
+                new SequenceMatcher(List.of(
+                        new WordMatcher("("),
+                        new Require(1),
+                        new SubMatcher("s"),
+                        new MultiMatcher(false, new SequenceMatcher(List.of(
+                                new WordMatcher(","),
+                                new SubMatcher("s")
+                        ))),
+                        new WordMatcher(")"),
+                        new Require(-1)
+                )),
+                m -> "( tuple %s )".formatted(Lst.asList(m.values().get("s"))),
+                (m, c) -> null
+        ));
+        context.add(new Pattern("times",
+                new SequenceMatcher(List.of(
+                        new Require(1),
+                        new SubMatcher("a"),
+                        new WordMatcher("*"),
+                        new Require(-1),
+                        new SubMatcher("b")
+                )),
+                m -> "( %s * %s )".formatted(m.attempt("a"), m.attempt("b")),
+                (m, c) -> {
+                    int pre = c.getPrecedence("times");
+                    Match a = (Match) m.values().get("a").element();
+                    a.check(c);
+                    int pa = c.getPrecedence(a.pattern().name());
+
+                    Match b = (Match) m.values().get("b").element();
+                    b.check(c);
+                    int pb = c.getPrecedence(b.pattern().name());
+
+                    if (pa < pre || pb <= pre)
+                        throw new RuntimeException("Precedence mismatch!");
+                    return null;
+                }
+        ));
+        context.add(new Pattern("plus",
+                new SequenceMatcher(List.of(
+                        new Require(1),
+                        new SubMatcher("a"),
+                        new WordMatcher("+"),
+                        new Require(-1),
+                        new SubMatcher("b")
+                )),
+                m -> "( %s + %s )".formatted(m.attempt("a"), m.attempt("b")),
+                (m, c) -> {
+                    int pre = c.getPrecedence("plus");
+                    Match a = (Match) m.values().get("a").element();
+                    a.check(c);
+                    int pa = c.getPrecedence(a.pattern().name());
+
+                    Match b = (Match) m.values().get("b").element();
+                    b.check(c);
+                    int pb = c.getPrecedence(b.pattern().name());
+
+                    if (pa < pre || pb <= pre)
+                        throw new RuntimeException("Precedence mismatch!");
+                    return null;
+                }
+        ));
+
+        context.add(new Pattern("eq",
+                new SequenceMatcher(List.of(
+                        new Require(1),
+                        new SubMatcher("a"),
+                        new WordMatcher("="),
+                        new Require(-1),
+                        new SubMatcher("b")
+                )),
+                m -> "( %s = %s )".formatted(m.attempt("a"), m.attempt("b")),
+                (m, c) -> {
+                    int pre = c.getPrecedence("eq");
+                    Match a = (Match) m.values().get("a").element();
+                    a.check(c);
+                    int pa = c.getPrecedence(a.pattern().name());
+
+                    Match b = (Match) m.values().get("b").element();
+                    b.check(c);
+                    int pb = c.getPrecedence(b.pattern().name());
+
+                    if (pa <= pre || pb <= pre)
+                        throw new RuntimeException("Precedence mismatch!");
+                    return null;
+                }
+        ));
+        context.add(new Pattern("let",
+                new SequenceMatcher(List.of(
+                        new Require(1),
+                        new TextMatcher("n"),
+                        new WordMatcher("<-"),
+                        new Require(-1),
+                        new SubMatcher("v")
+                )),
+                m -> "( %s <- %s )".formatted(m.attempt("n"), m.attempt("v")),
+                (m, c) -> {
+                    Lst.asList(m.values().get("v"))
+                            .stream()
+                            .map(Match.class::cast)
+                            .forEach(a -> a.check(c));
+                    return null;
+                }
+        ));
+        context.add(new Pattern("var",
+                new VariableMatcher("name"),
+                m -> m.attempt("name"),
+                (m, c) -> null
+        ));
+
+        context.add(new Pattern("set",
+                new SequenceMatcher(List.of(
+                        new WordMatcher("{"),
+                        new Require(1),
+                        new SubMatcher("v"),
+                        new MultiMatcher(true,
+                                new SequenceMatcher(List.of(
+                                        new WordMatcher(","),
+                                        new SubMatcher("v")
+                                ))),
+                        new WordMatcher("}"),
+                        new Require(-1)
+                )),
+                m -> "( set " + Lst.asList(m.values().get("v")) + " )",
+                (m, c) -> {
+                    Lst.asList(m.values().get("v"))
+                            .stream()
+                            .map(Match.class::cast)
+                            .forEach(a -> a.check(c));
+                    return null;
+                }
+        ));
+
+        context.add(new Pattern("set-const",
+                new SequenceMatcher(List.of(
+                        new WordMatcher("{"),
+                        new Require(2),
+                        new SubMatcher("v"),
+                        new WordMatcher("|"),
+                        new Require(-1),
+                        new SequenceMatcher(List.of(
+                                new TextMatcher("n"),
+                                new WordMatcher("in"),
+                                new Require(-1),
+                                new SubMatcher("s")
+                        )),
+                        new MultiMatcher(true,
+                                new SequenceMatcher(List.of(
+                                        new WordMatcher(","),
+                                        new SequenceMatcher(List.of(
+                                                new TextMatcher("n"),
+                                                new WordMatcher("in"),
+                                                new SubMatcher("s")
+                                        )))
+                                )),
+                        new WordMatcher("}"),
+                        new Require(-1)
+                )),
+                m -> "( set-const " + Lst.asList(m.values().get("v")) + " " + Lst.asList(m.values().get("n")) + " " + Lst.asList(m.values().get("s")) + " )",
+                (m, c) -> {
+                    Lst.asList(m.values().get("v"))
+                            .stream()
+                            .map(Match.class::cast)
+                            .forEach(a -> a.check(c));
+
+                    Lst.asList(m.values().get("s"))
+                            .stream()
+                            .map(Match.class::cast)
+                            .forEach(a -> a.check(c));
+                    return null;
+                }
+        ));
+
+        PrecedenceGraph graph = new PrecedenceGraph()
+                .add("let", List.of(), List.of())
+                .add("plus", List.of("let"), List.of())
+                .add("times", List.of("plus"), List.of())
+                .add("sub", List.of("times"), List.of())
+                .add("tuple", List.of("times"), List.of())
+                .add("num", List.of("times"), List.of())
+                .add("var", List.of("times"), List.of())
+                .add("set", List.of("let"), List.of("plus"))
+                .add("set-const", List.of("let"), List.of("plus"))
+                .add("eq", List.of("let"), List.of("set", "set-const"))
+                .compile();
+
+        String text = """
+                E <- {1, 2, 3, 4, 5 * 6 * 8 + 4}.
+                a <- {(x, (y, z)) | x in E, y in E, z in {1, 2, 3, 4}}.
+                a + b * a + c.
+                """;
+        List<Interpretation> parse = SlothParser.parse(text, context, graph);
+    }
+
+    public static void example1()
+    {
+        MatchingContext context = new MatchingContext();
+        Type number = new Type("Number");
+        Type nothing = new Type("Nothing");
+        context.add(new Pattern("num",
+                new NumMatcher(),
+                m -> m.attempt("val"),
+                (m, c) -> number
+        ));
+        context.add(new Pattern("sub",
+                new SequenceMatcher(List.of(
+                        new WordMatcher("("),
+                        new Require(1),
+                        new SubMatcher("s"),
+                        new WordMatcher(")"),
+                        new Require(-1)
+                )),
+                m -> "( %s )".formatted(m.attempt("s")),
                 (m, c) -> {
                     Match match = (Match) m.values().get("s").element();
                     return match.check(c);

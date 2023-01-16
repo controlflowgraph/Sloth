@@ -20,6 +20,16 @@ public class Provider<T>
         this.summed += count;
     }
 
+    public int require()
+    {
+        return this.summed;
+    }
+
+    public void setRequired(int req)
+    {
+        this.summed = req;
+    }
+
     public int index()
     {
         return this.index;

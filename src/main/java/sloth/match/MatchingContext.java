@@ -2,12 +2,9 @@ package sloth.match;
 
 import sloth.pattern.Pattern;
 
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
-public record MatchingContext(List<Pattern> patterns, Map<String, Meta> info)
+public record MatchingContext(List<Pattern> patterns, Map<String, Meta> info, Map<String, List<Match>> cache, Deque<Boolean> stack)
 {
     public MatchingContext()
     {
@@ -16,7 +13,7 @@ public record MatchingContext(List<Pattern> patterns, Map<String, Meta> info)
 
     public MatchingContext(List<Pattern> patterns)
     {
-        this(patterns, new HashMap<>());
+        this(patterns, new HashMap<>(), new HashMap<>(), new ArrayDeque<>());
     }
 
     public void add(Pattern pattern)
@@ -27,5 +24,20 @@ public record MatchingContext(List<Pattern> patterns, Map<String, Meta> info)
     public void add(Meta info)
     {
         this.info.put(info.name(), info);
+    }
+
+    public void push()
+    {
+        this.stack.push(true);
+    }
+
+    public void pop()
+    {
+        this.stack.pop();
+    }
+
+    public int size()
+    {
+        return this.stack.size();
     }
 }

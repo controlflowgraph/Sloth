@@ -10,6 +10,8 @@ public record NumMatcher() implements Matcher
     @Override
     public List<Match> match(MatchingContext context, Provider<String> str, List<Match> matches)
     {
+        if(matches.isEmpty())
+            return List.of();
         List<Match> filtered = new ArrayList<>();
         for (Match match : matches)
         {

@@ -17,7 +17,7 @@ public class CheckingContext
     public CheckingContext(PrecedenceGraph graph)
     {
         this(graph, new ArrayDeque<>());
-        this.scopes.add(new Scope("global"));
+        this.scopes.push(new Scope("global"));
     }
 
     public CheckingContext clone()
@@ -64,5 +64,15 @@ public class CheckingContext
         if(isVariableDefined(name))
             throw new RuntimeException("Variable '" + name + "' is already defined!");
         this.scopes.peek().define(name, v);
+    }
+
+    public void push(String name)
+    {
+        this.scopes.push(new Scope(name));
+    }
+
+    public void pop()
+    {
+        this.scopes.pop();
     }
 }
