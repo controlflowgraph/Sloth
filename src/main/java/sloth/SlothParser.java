@@ -9,7 +9,9 @@ import sloth.model.Part;
 import sloth.model.Segment;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 import static java.util.function.Predicate.not;
 
@@ -35,7 +37,7 @@ public class SlothParser
         List<Interpretation> interpretations = new ArrayList<>();
         interpretations.add(new Interpretation(List.of(), new CheckingContext(graph)));
 
-
+        Map<String, Integer> errors = new HashMap<>();
         for (Part lists : matches)
         {
             List<Interpretation> interpreted = new ArrayList<>();
@@ -54,15 +56,18 @@ public class SlothParser
                         List<Match> interpretation = new ArrayList<>(value.matches());
                         interpretation.addAll(list.matches());
                         interpreted.add(new Interpretation(interpretation, current));
+                        errors.put("Valid", errors.getOrDefault("Valid", 0) + 1);
                     }
                     catch (Exception e)
                     {
-                        System.out.println("=> " + e.getMessage());
+                        errors.put(e.getMessage(), errors.getOrDefault(e.getMessage(), 0) + 1);
                     }
                 }
             }
             interpretations = interpreted;
         }
+        System.out.println("Results:");
+        errors.forEach((k, v) -> System.out.println("\t" + v + " " + k));
         return interpretations;
     }
 
