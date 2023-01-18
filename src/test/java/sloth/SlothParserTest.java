@@ -15,7 +15,6 @@ class SlothParserTest
     {
         example0();
     }
-    // TODO: refactor the stack to a variable / counter to avoid resource useless consumption!!!
 
     public static void example0()
     {

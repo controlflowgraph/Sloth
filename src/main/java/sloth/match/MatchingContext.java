@@ -4,7 +4,7 @@ import sloth.pattern.Pattern;
 
 import java.util.*;
 
-public record MatchingContext(List<Pattern> patterns, Map<String, Meta> info, Map<String, List<Match>> cache, Deque<Boolean> stack)
+public record MatchingContext(List<Pattern> patterns, Map<String, Meta> info, Map<String, List<Match>> cache, Counter counter)
 {
     public MatchingContext()
     {
@@ -13,7 +13,7 @@ public record MatchingContext(List<Pattern> patterns, Map<String, Meta> info, Ma
 
     public MatchingContext(List<Pattern> patterns)
     {
-        this(patterns, new HashMap<>(), new HashMap<>(), new ArrayDeque<>());
+        this(patterns, new HashMap<>(), new HashMap<>(), new Counter());
     }
 
     public void add(Pattern pattern)
@@ -28,16 +28,16 @@ public record MatchingContext(List<Pattern> patterns, Map<String, Meta> info, Ma
 
     public void push()
     {
-        this.stack.push(true);
+        this.counter.inc();
     }
 
     public void pop()
     {
-        this.stack.pop();
+        this.counter.dec();
     }
 
     public int size()
     {
-        return this.stack.size();
+        return this.counter.get();
     }
 }
