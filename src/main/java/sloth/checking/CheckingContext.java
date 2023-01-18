@@ -61,7 +61,7 @@ public class CheckingContext
 
     public void definedVariable(String name, Type v)
     {
-        if(isVariableDefined(name))
+        if(isVariableDefinedLocally(name))
             throw new RuntimeException("Variable '" + name + "' is already defined!");
         this.scopes.peek().define(name, v);
     }
@@ -74,5 +74,10 @@ public class CheckingContext
     public void pop()
     {
         this.scopes.pop();
+    }
+
+    public boolean isVariableDefinedLocally(String name)
+    {
+        return this.scopes.peek().isDefined(name);
     }
 }

@@ -24,6 +24,7 @@ public class SlothParser
     public static List<Interpretation> parse(String text, MatchingContext context, PrecedenceGraph graph)
     {
         Provider<String> provider = new Provider<>(Lexer.lex(text));
+        System.out.println(provider.rest());
         List<Part> parse = SyntaxMatcher.parse(context, provider);
         List<Part> cleaned = removeEmptyMatches(parse);
         System.out.println(cleaned.size() + " SYNTACTIC VALUES FOUND!");
