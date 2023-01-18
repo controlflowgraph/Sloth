@@ -27,6 +27,18 @@ public class SlothParser
         List<Part> parse = SyntaxMatcher.parse(context, provider);
         List<Part> cleaned = removeEmptyMatches(parse);
         System.out.println(cleaned.size() + " SYNTACTIC VALUES FOUND!");
+        for (Part part : cleaned)
+        {
+            System.out.println("====");
+            for (Segment segment : part.segments())
+            {
+                System.out.println("\t===");
+                for (Match match : segment.matches())
+                {
+                    System.out.println("\t\t" + match);
+                }
+            }
+        }
         List<Interpretation> interpretations = processCombinations(cleaned, graph);
         printInterpretations(interpretations);
         return interpretations;
