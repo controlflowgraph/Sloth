@@ -28,59 +28,68 @@ public class SlothParser
         List<Part> parse = SyntaxMatcher.parse(context, provider);
         List<Part> cleaned = removeEmptyMatches(parse);
         System.out.println(cleaned.size() + " SYNTACTIC VALUES FOUND!");
-        for (Part part : cleaned)
-        {
-            System.out.println("====");
-            for (Segment segment : part.segments())
-            {
-                System.out.println("\t===");
-                for (Match match : segment.matches())
-                {
-                    System.out.println("\t\t" + match);
-                }
-            }
-        }
-        List<Interpretation> interpretations = processCombinations(cleaned, graph);
+//        for (Part part : cleaned)
+//        {
+//            System.out.println("====");
+//            for (Segment segment : part.segments())
+//            {
+//                System.out.println("\t===");
+//                for (Match match : segment.matches())
+//                {
+//                    System.out.println("\t\t" + match);
+//                }
+//            }
+//        }
+        List<Interpretation> interpretations = processCombinations(createCombinations(cleaned), graph);
         printInterpretations(interpretations);
         return interpretations;
     }
 
-    private static List<Interpretation> processCombinations(List<Part> matches, PrecedenceGraph graph)
+    private static List<List<Match>> createCombinations(List<Part> matches)
     {
-        List<Interpretation> interpretations = new ArrayList<>();
-        interpretations.add(new Interpretation(List.of(), new CheckingContext(graph)));
-
-        Map<String, Integer> errors = new HashMap<>();
-        for (Part lists : matches)
+        List<List<Match>> combinations = new ArrayList<>();
+        combinations.add(List.of());
+        for (Part match : matches)
         {
-            List<Interpretation> interpreted = new ArrayList<>();
-
-            for (Segment list : lists.segments())
+            List<List<Match>> iterated = new ArrayList<>();
+            for (Segment segment : match.segments())
             {
-                for (Interpretation value : interpretations)
+                for (List<Match> combination : combinations)
                 {
-                    CheckingContext current = value.context().clone();
-                    try
-                    {
-                        for (Match match : list.matches())
-                        {
-                            match.check(current);
-                        }
-                        List<Match> interpretation = new ArrayList<>(value.matches());
-                        interpretation.addAll(list.matches());
-                        interpreted.add(new Interpretation(interpretation, current));
-                        errors.put("Valid", errors.getOrDefault("Valid", 0) + 1);
-                    }
-                    catch (Exception e)
-                    {
-                        errors.put(e.getMessage(), errors.getOrDefault(e.getMessage(), 0) + 1);
-                    }
+                    List<Match> seg = new ArrayList<>();
+                    seg.addAll(combination);
+                    seg.addAll(segment.matches());
+                    iterated.add(seg);
                 }
             }
-            interpretations = interpreted;
+            combinations = iterated;
+        }
+        return combinations;
+    }
+
+    private static List<Interpretation> processCombinations(List<List<Match>> matches, PrecedenceGraph graph)
+    {
+        List<Interpretation> interpretations = new ArrayList<>();
+        Map<String, Integer> results = new HashMap<>();
+        for (List<Match> match : matches)
+        {
+            CheckingContext context = new CheckingContext(graph);
+            try
+            {
+                for (Match match1 : match)
+                {
+                    match1.check(context);
+                }
+                results.put("Valid!", results.getOrDefault("Valid!", 0) + 1);
+                interpretations.add(new Interpretation(match, context));
+            }
+            catch (Exception e)
+            {
+                results.put(e.getMessage(), results.getOrDefault(e.getMessage(), 0) + 1);
+            }
         }
         System.out.println("Results:");
-        errors.forEach((k, v) -> System.out.println("\t" + v + " " + k));
+        results.forEach((a, b) -> System.out.println("\t" + b + " " + a));
         return interpretations;
     }
 
