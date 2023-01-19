@@ -78,7 +78,7 @@ public class SlothParser
             {
                 for (Match match1 : match)
                 {
-                    match1.check(context);
+                    match1.checkPrecedence(context);
                 }
                 results.put("Valid!", results.getOrDefault("Valid!", 0) + 1);
                 interpretations.add(new Interpretation(match, context));

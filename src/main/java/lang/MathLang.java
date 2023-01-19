@@ -59,21 +59,11 @@ public class MathLang
     private static final Type BOOLEAN_TYPE = new Type("Boolean");
     private static final Type OBJECT_TYPE = new Type("Object");
 
-    private interface Processor
-    {
-        Type process(CheckingContext context, Match a, Match b);
-    }
-
     private static Pattern in()
     {
         return binaryOperator(
                 "in",
-                "in",
-                (c, a, b) -> {
-                    a.check(c);
-                    b.check(c);
-                    return BOOLEAN_TYPE;
-                }
+                "in"
         );
     }
 
@@ -91,14 +81,10 @@ public class MathLang
                         new WordMatcher(")")
                 )),
                 m -> "( tuple " + Lst.asList(m.values().get("v")) + " )",
-                (m, c) -> {
-                    List<Type> v = Lst.asList(m.values().get("v"))
-                            .stream()
-                            .map(Match.class::cast)
-                            .map(a -> a.check(c))
-                            .toList();
-                    return new Type("Tuple", v);
-                }
+                (m, c) -> Lst.asList(m.values().get("v"))
+                        .stream()
+                        .map(Match.class::cast)
+                        .forEach(a -> a.checkPrecedence(c))
         );
     }
 
@@ -126,34 +112,12 @@ public class MathLang
                 )),
                 m -> "( set-const " + m.attempt("v") + " " + Lst.asList(m.values().get("n")) + " " + Lst.asList(m.values().get("s")) + " )",
                 (m, c) -> {
-                    List<String> n = Lst.asList(m.values().get("n"))
-                            .stream()
-                            .map(String.class::cast)
-                            .toList();
-                    List<Match> s = Lst.asList(m.values().get("s"))
+                    Lst.asList(m.values().get("s"))
                             .stream()
                             .map(Match.class::cast)
-                            .toList();
-
-                    List<Type> types = s.stream()
-                            .map(t -> t.check(c))
-                            .toList();
-
-                    c.push("set-const");
-                    for (int i = 0; i < types.size(); i++)
-                    {
-                        Type t = types.get(i);
-                        if(!t.name().equals("Set") || t.generics().size() != 1)
-                            throw new RuntimeException("Mismatching type!");
-                        String name = n.get(i);
-                        c.definedVariable(name, t);
-                    }
-
+                            .forEach(a -> a.checkPrecedence(c));
                     Match v = (Match) m.values().get("v").element();
-                    Type tv = v.check(c);
-                    c.pop();
-
-                    return tv;
+                    v.checkPrecedence(c);
                 }
         );
     }
@@ -178,47 +142,29 @@ public class MathLang
                         new WordMatcher("}")
                 )),
                 m -> "(set-of " + Lst.asList(m.values().get("v")) + " )",
-                (m, c) -> {
-                    List<Type> v = Lst.asList(m.values().get("v"))
-                            .stream()
-                            .map(Match.class::cast)
-                            .map(a -> a.check(c))
-                            .toList();
-                    if(v.isEmpty())
-                        return new Type("Set", List.of(OBJECT_TYPE));
-                    Type t = v.get(0);
-                    for (Type type : v)
-                        if(!t.equals(type))
-                            throw new RuntimeException("Mismatching type!");
-                    return new Type("Set", List.of(t));
-                }
+                (m, c) -> Lst.asList(m.values().get("v"))
+                        .stream()
+                        .map(Match.class::cast)
+                        .forEach(a -> a.checkPrecedence(c))
         );
     }
 
     private static Pattern plus()
     {
-        return simpleBinaryOperator("plus", "+", NUMBER_TYPE, NUMBER_TYPE);
+        return simpleBinaryOperator("plus", "+");
     }
 
     private static Pattern times()
     {
-        return simpleBinaryOperator("times", "*", NUMBER_TYPE, NUMBER_TYPE);
+        return simpleBinaryOperator("times", "*");
     }
 
-    private static Pattern simpleBinaryOperator(String name, String symbol, Type required, Type result)
+    private static Pattern simpleBinaryOperator(String name, String symbol)
     {
-        return binaryOperator(name, symbol, (c, a, b) -> {
-            Type ta = a.check(c);
-            Type tb = b.check(c);
-            if (!ta.equals(required))
-                throw new RuntimeException("Mismatching type!");
-            if (!tb.equals(required))
-                throw new RuntimeException("Mismatching type!");
-            return result;
-        });
+        return binaryOperator(name, symbol);
     }
 
-    private static Pattern binaryOperator(String name, String symbol, Processor processor)
+    private static Pattern binaryOperator(String name, String symbol)
     {
         return new Pattern(
                 name,
@@ -240,7 +186,6 @@ public class MathLang
                     int pb = c.getPrecedence(b.pattern().name());
                     if (pa < pred || pb <= pred)
                         throw new RuntimeException("Mismatching precedence!");
-                    return processor.process(c, a, b);
                 }
         );
     }
@@ -260,11 +205,10 @@ public class MathLang
                 (m, c) -> {
                     String name = (String) m.values().get("n").element();
                     Match v = (Match) m.values().get("v").element();
+                    v.checkPrecedence(c);
                     if (c.isVariableDefinedLocally(name))
                         throw new RuntimeException("Variable already defined");
-                    Type check = v.check(c);
-                    c.definedVariable(name, check);
-                    return NONE_TYPE;
+                    c.definedVariable(name, null);
                 }
         );
     }
@@ -275,12 +219,7 @@ public class MathLang
                 "var",
                 new VariableMatcher("n"),
                 m -> m.attempt("n"),
-                (m, c) -> {
-                    String name = (String) m.values().get("n").element();
-                    if (!c.isVariableDefined(name))
-                        throw new RuntimeException("Variable not in scope!");
-                    return c.getVariableType(name);
-                }
+                (m, c) -> {}
         );
     }
 
@@ -290,7 +229,7 @@ public class MathLang
                 "num",
                 new NumMatcher(),
                 m -> m.attempt("val"),
-                (m, c) -> NUMBER_TYPE
+                (m, c) -> {}
         );
     }
 }
