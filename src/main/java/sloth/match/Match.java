@@ -66,8 +66,8 @@ public record Match(int start, int end, Pattern pattern, Map<String, Lst<Object>
                 '}';
     }
 
-    public boolean checkPrecedence(CheckingContext context)
+    public void checkPrecedence(CheckingContext context)
     {
-        return this.pattern.validator().validate(this, context);
+        this.pattern.validator().validate(this, context);
     }
 }
