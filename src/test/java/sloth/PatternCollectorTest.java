@@ -18,7 +18,7 @@ class PatternCollectorTest
     void shouldCollectPatterns()
     {
         List<Pattern> expected = List.of(
-                new Pattern("something", null)
+                new Pattern("something", null, null, null)
         );
         List<Pattern> actual = PatternCollector.collect(CorrectPattern.class);
         assertEquals(expected, actual);

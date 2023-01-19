@@ -7,21 +7,10 @@ import sloth.match.Matcher;
 import sloth.match.MatchingContext;
 
 import java.util.List;
-import java.util.Map;
 import java.util.function.Function;
 
 public record Pattern(String name, Matcher matcher, Function<Match, String> tree, Validator validator)
 {
-    public Pattern(String name, Matcher matcher, Function<Match, String> tree)
-    {
-        this(name, matcher, tree, null);
-    }
-
-    public Pattern(String name, Matcher matcher)
-    {
-        this(name, matcher, m -> m.values().toString());
-    }
-
     public List<Match> tryMatch(MatchingContext context, Provider<String> provider, Match match)
     {
         if (!provider.hasRemaining())

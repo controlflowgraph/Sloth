@@ -8,6 +8,6 @@ public class NonStaticPattern
     @PatternMarker
     public Pattern something()
     {
-        return new Pattern("something", null);
+        return new Pattern("something", null, null, null);
     }
 }
