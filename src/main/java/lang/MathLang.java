@@ -8,7 +8,10 @@ import sloth.match.*;
 import sloth.model.Interpretation;
 import sloth.pattern.Pattern;
 
+import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 import java.util.function.Supplier;
 
 public class MathLang
@@ -143,10 +146,14 @@ public class MathLang
                     for (int i = 0; i < types.size(); i++)
                     {
                         Type t = types.get(i);
-                        if(!t.name().equals("Set") || t.generics().size() != 1)
+                        if (!t.name().equals("Set"))
                             throw new RuntimeException("Mismatching type!");
                         String name = n.get(i);
-                        c.definedVariable(name, t);
+                        if (t.generics().isEmpty())
+                            c.definedVariable(name, OBJECT_TYPE);
+                        else if (t.generics().size() == 1)
+                            c.definedVariable(name, t.generics().get(0));
+                        else c.definedVariable(name, new Type("Union", t.generics()));
                     }
 
                     Match v = (Match) m.values().get("v").element();
@@ -158,23 +165,34 @@ public class MathLang
         );
     }
 
+    private static Pattern emptySet()
+    {
+        return new Pattern(
+                "empty-set",
+                new SequenceMatcher(List.of(
+                        new WordMatcher("{"),
+                        new WordMatcher("}")
+                )),
+                m -> "(empty-set)",
+                (m, c) -> new Type("Set", List.of())
+        );
+    }
+
     private static Pattern setOf()
     {
         return new Pattern(
                 "set-of",
                 new SequenceMatcher(List.of(
                         new WordMatcher("{"),
-                        new PossibleMatcher(
-                                new SequenceMatcher(List.of(
-                                        new SubMatcher("v"),
-                                        new MultiMatcher(true,
-                                                new SequenceMatcher(List.of(
-                                                        new WordMatcher(","),
-                                                        new SubMatcher("v")
-                                                ))
-                                        )
-                                ))
-                        ),
+                        new SequenceMatcher(List.of(
+                                new SubMatcher("v"),
+                                new MultiMatcher(true,
+                                        new SequenceMatcher(List.of(
+                                                new WordMatcher(","),
+                                                new SubMatcher("v")
+                                        ))
+                                )
+                        )),
                         new WordMatcher("}")
                 )),
                 m -> "(set-of " + Lst.asList(m.values().get("v")) + " )",
@@ -184,13 +202,15 @@ public class MathLang
                             .map(Match.class::cast)
                             .map(a -> a.check(c))
                             .toList();
-                    if(v.isEmpty())
-                        return new Type("Set", List.of(OBJECT_TYPE));
-                    Type t = v.get(0);
+                    Set<Type> unique = new HashSet<>();
                     for (Type type : v)
-                        if(!t.equals(type))
-                            throw new RuntimeException("Mismatching type!");
-                    return new Type("Set", List.of(t));
+                    {
+                        if (!type.name().equals("Set"))
+                        {
+                            unique.addAll(type.generics());
+                        }
+                    }
+                    return new Type("Set", new ArrayList<>(unique));
                 }
         );
     }
