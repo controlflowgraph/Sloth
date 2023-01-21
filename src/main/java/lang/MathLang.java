@@ -26,7 +26,10 @@ public class MathLang
                 MathLang::setOf,
                 MathLang::listOf,
                 MathLang::assign,
-                MathLang::number
+                MathLang::number,
+                MathLang::lambda,
+                MathLang::call,
+                MathLang::sub
         );
 
         MatchingContext context = new MatchingContext();
@@ -44,6 +47,9 @@ public class MathLang
                 .add("set-const", List.of("in"), List.of())
                 .add("var", List.of("times"), List.of())
                 .add("num", List.of("times"), List.of())
+                .add("call", List.of("assign"), List.of())
+                .add("lambda", List.of("call"), List.of())
+                .add("sub", List.of("assign"), List.of())
                 .compile();
 
         String test = """
@@ -63,6 +69,7 @@ public class MathLang
                 f := [4, 5, 6]
                 g := 1 in e
                 h := 1 in f
+                i := ((a, b) -> a + b)(10, 20)
                 """;
         InheritanceTree tree = new InheritanceTree();
         tree.add(new TypeDescription("Collection", List.of("A"), List.of()));
@@ -71,6 +78,7 @@ public class MathLang
         tree.add(new TypeDescription("OrderedCollection", List.of("B"), List.of(new Type(false, "Collection", List.of(new Type(true, "B", List.of()))))));
         tree.add(new TypeDescription("List", List.of("C"), List.of(new Type(false, "OrderedCollection", List.of(new Type(true, "C", List.of()))))));
         tree.add(new TypeDescription("Number", List.of(), List.of()));
+        tree.add(new TypeDescription("Lambda", List.of(), List.of()));
         List<Interpretation> parse = SlothParser.parse(text, context, graph);
         List<InferenceContext> contexts = checkTypes(parse, tree);
         System.out.println(contexts.size() + " CONTEXT RESULTING");
@@ -126,6 +134,8 @@ public class MathLang
                 {
                     value.forward(context);
                 }
+
+                changed |= context.flag().active();
             }
 
             context.flag().set();
@@ -154,9 +164,55 @@ public class MathLang
                 .map(inf.types()::get)
                 .anyMatch(Objects::isNull);
 
+        inf.fragments().forEach((a, b) -> System.out.println(a + " " + b + " -> " + inf.types().get(a)));
+
         if (missing)
             throw new RuntimeException("Problematic!");
         return inf;
+    }
+
+    private record Sub(int output, int input) implements Fragment
+    {
+        @Override
+        public void forward(InferenceContext context)
+        {
+            if (context.isKnown(this.input))
+            {
+                context.setActual(this.output, context.getType(this.input));
+            }
+        }
+
+        @Override
+        public void backward(InferenceContext context)
+        {
+            if (context.isKnown(this.output))
+            {
+                context.setActual(this.input, context.getType(this.output));
+            }
+        }
+    }
+
+    private static Pattern sub()
+    {
+        return new Pattern(
+                "sub",
+                new SequenceMatcher(List.of(
+                        new WordMatcher("("),
+                        new SubMatcher("v"),
+                        new WordMatcher(")")
+                )),
+                m -> "( sub " + m.attempt("v") + " )",
+                (m, c) -> {
+                    Match v = (Match) m.values().get("v").element();
+                    v.checkPrecedence(c);
+                },
+                (c, m) -> {
+                    Match v = (Match) m.values().get("v").element();
+                    int flatten = v.flatten(c);
+                    int id = c.getId();
+                    return new Sub(id, flatten);
+                }
+        );
     }
 
     private static final Type BOOLEAN_TYPE = new Type(false, "Boolean", List.of());
@@ -190,7 +246,7 @@ public class MathLang
         @Override
         public void backward(InferenceContext context)
         {
-            if(context.isKnown(this.output))
+            if (context.isKnown(this.output))
             {
                 mustBeType(BOOLEAN_TYPE, context.getType(this.output));
             }
@@ -213,7 +269,7 @@ public class MathLang
                 new SequenceMatcher(List.of(
                         new WordMatcher("("),
                         new SubMatcher("v"),
-                        new MultiMatcher(true, new SequenceMatcher(List.of(
+                        new MultiMatcher(false, new SequenceMatcher(List.of(
                                 new WordMatcher(","),
                                 new SubMatcher("v")
                         ))),
@@ -223,7 +279,194 @@ public class MathLang
                 (m, c) -> Lst.asList(m.values().get("v"))
                         .stream()
                         .map(Match.class::cast)
-                        .forEach(a -> a.checkPrecedence(c))
+                        .forEach(a -> a.checkPrecedence(c)),
+                (c, m) -> {
+                    throw new RuntimeException("TUPLE NOT SUPPORTED!");
+                }
+        );
+    }
+
+    private record Call(int output, int source, List<Integer> parameters) implements Fragment
+    {
+        @Override
+        public void forward(InferenceContext context)
+        {
+            if (context.isKnown(this.source) && context.areKnown(this.parameters))
+            {
+                Type fn = context.getType(this.source);
+                List<Type> params = this.parameters.stream()
+                        .map(context::getType)
+                        .toList();
+                if (!fn.name().equals("Lambda"))
+                    throw new RuntimeException("Requiring lambda to call!");
+                if (fn.generics().size() != params.size() + 1)
+                    throw new RuntimeException("Mismatching number of lambda parameters! " + fn.generics().size() + " <=> " + params.size());
+                for (int i = 0; i < params.size(); i++)
+                {
+                    Type type = fn.generics().get(i);
+                    Type actual = params.get(i);
+                    boolean assignable = context.tree().isAssignable(type, actual);
+                    if (!assignable)
+                        throw new RuntimeException("Mismatching parameter type!");
+                }
+                context.setActual(this.output, fn.generics().get(fn.generics().size() - 1));
+            }
+        }
+
+        @Override
+        public void backward(InferenceContext context)
+        {
+            // skip for now
+        }
+    }
+
+    private static Pattern call()
+    {
+        return new Pattern(
+                "call",
+                new SequenceMatcher(List.of(
+                        new Require(2),
+                        new SubMatcher("v"),
+                        new WordMatcher("("),
+                        new Require(-1),
+                        new PossibleMatcher(
+                                new SequenceMatcher(List.of(
+                                        new SubMatcher("p"),
+                                        new MultiMatcher(true,
+                                                new SequenceMatcher(List.of(
+                                                        new WordMatcher(","),
+                                                        new SubMatcher("p")
+                                                ))
+                                        )
+                                ))
+                        ),
+                        new WordMatcher(")"),
+                        new Require(-1)
+                )),
+                m -> "( call " + m.attempt("v") + " " + Lst.asList(m.values().get("p")) + ")",
+                (m, c) -> {
+                    Match v = (Match) m.values().get("v").element();
+                    v.checkPrecedence(c);
+                    List<Match> paras = Lst.asList(m.values().get("p"))
+                            .stream()
+                            .map(Match.class::cast)
+                            .toList();
+                    paras.forEach(p -> p.checkPrecedence(c));
+
+                    int pre = c.getPrecedence("call");
+                    int val = c.getPrecedence(v.pattern().name());
+                    if (val < pre)
+                        throw new RuntimeException("Mismatching precedence!");
+                },
+                (c, m) -> {
+                    Match v = (Match) m.values().get("v").element();
+                    List<Match> paras = Lst.asList(m.values().get("p"))
+                            .stream()
+                            .map(Match.class::cast)
+                            .toList();
+                    int source = v.flatten(c);
+                    List<Integer> par = paras.stream()
+                            .map(a -> a.flatten(c))
+                            .toList();
+                    int out = c.getId();
+                    return new Call(out, source, par);
+                }
+        );
+    }
+
+    private record Lambda(int output, List<Integer> inputs, int res) implements Fragment
+    {
+        private void process(InferenceContext context)
+        {
+            if (context.isKnown(this.res) && context.areKnown(this.inputs))
+            {
+                List<Type> generics = new ArrayList<>();
+                this.inputs.stream()
+                        .map(context::getType)
+                        .forEach(generics::add);
+                generics.add(context.getType(this.res));
+                context.setExpected(this.output, new Type(false, "Lambda", generics));
+            }
+        }
+
+        @Override
+        public void forward(InferenceContext context)
+        {
+            process(context);
+        }
+
+        @Override
+        public void backward(InferenceContext context)
+        {
+            process(context);
+        }
+    }
+
+    private record Parameter(int output, String id) implements Fragment
+    {
+        @Override
+        public void forward(InferenceContext context)
+        {
+
+        }
+
+        @Override
+        public void backward(InferenceContext context)
+        {
+
+        }
+    }
+
+    private static Pattern lambda()
+    {
+        return new Pattern(
+                "lambda",
+                new SequenceMatcher(List.of(
+                        new WordMatcher("("),
+                        new PossibleMatcher(
+                                new SequenceMatcher(List.of(
+                                        new TextMatcher("n"),
+                                        new MultiMatcher(true,
+                                                new SequenceMatcher(List.of(
+                                                        new WordMatcher(","),
+                                                        new TextMatcher("n")
+                                                ))
+                                        )
+                                ))
+                        ),
+                        new WordMatcher(")"),
+                        new WordMatcher("->"),
+                        new SubMatcher("v")
+                )),
+                m -> "( lambda " + Lst.asList(m.values().get("n")) + " " + m.attempt("v") + " )",
+                (m, c) -> {
+                    int pre = c.getPrecedence("lambda");
+                    Match match = (Match) m.values().get("v").element();
+                    match.checkPrecedence(c);
+                    int sub = c.getPrecedence(match.pattern().name());
+                    if (sub < pre)
+                        throw new RuntimeException("Mismatching precedence!");
+                },
+                (c, m) -> {
+                    c.push();
+                    List<Parameter> names = Lst.asList(m.values().get("n"))
+                            .stream()
+                            .map(String.class::cast)
+                            .map(n -> {
+                                int i = c.defineLocally(n);
+                                return new Parameter(i, n);
+                            })
+                            .toList();
+                    names.forEach(c::register);
+                    List<Integer> ids = names.stream()
+                            .map(Parameter::output)
+                            .toList();
+                    Match v = (Match) m.values().get("v").element();
+                    int flatten = v.flatten(c);
+                    c.pop();
+                    int out = c.getId();
+                    return new Lambda(out, ids, flatten);
+                }
         );
     }
 
@@ -415,8 +658,8 @@ public class MathLang
                 Type tb = context.getType(b);
                 mustBeType(Num.NUMBER_TYPE, ta);
                 mustBeType(Num.NUMBER_TYPE, tb);
-                context.setActual(output, Num.NUMBER_TYPE);
             }
+            context.setActual(output, Num.NUMBER_TYPE);
         }
 
         public static void backward(InferenceContext context, int a, int b, int output)

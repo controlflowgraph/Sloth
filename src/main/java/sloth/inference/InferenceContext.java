@@ -70,6 +70,7 @@ public record InferenceContext(Map<Integer, Fragment> fragments, Map<Integer, Ty
         }
         else
         {
+            this.flag.set();
             this.types.put(id, type);
         }
     }
@@ -87,6 +88,7 @@ public record InferenceContext(Map<Integer, Fragment> fragments, Map<Integer, Ty
         }
         else
         {
+            this.flag.set();
             this.types.put(id, type);
         }
     }
@@ -106,5 +108,15 @@ public record InferenceContext(Map<Integer, Fragment> fragments, Map<Integer, Ty
     public Type getSuperType(Type over, Type type)
     {
         return this.tree.getSuperType(over, type);
+    }
+
+    public void push()
+    {
+        this.scopes.push(new VariableScope());
+    }
+
+    public void pop()
+    {
+        this.scopes.pop();
     }
 }
