@@ -21,7 +21,7 @@ public class SyntaxMatcher
             context.cache().clear();
             matches.add(matches(context, new Provider<>(split)));
         }
-        System.out.println(matches);
+        //System.out.println(matches);
         return matches;
     }
 

@@ -40,8 +40,63 @@ public class SlothParser
 //                }
 //            }
 //        }
+        // List<Interpretation> interpretations = combine(cleaned, graph);
         List<Interpretation> interpretations = processCombinations(createCombinations(cleaned), graph);
         printInterpretations(interpretations);
+        return interpretations;
+    }
+
+    private static List<Interpretation> combine(List<Part> matches, PrecedenceGraph graph)
+    {
+        List<List<Match>> combinations = new ArrayList<>();
+        List<CheckingContext> contexts = new ArrayList<>();
+        contexts.add(new CheckingContext(graph));
+        combinations.add(List.of());
+
+        Map<String, Integer> results = new HashMap<>();
+
+        for (Part part : matches)
+        {
+            List<List<Match>> iterated = new ArrayList<>();
+            List<CheckingContext> con = new ArrayList<>();
+            for (Segment segment : part.segments())
+            {
+                try
+                {
+                    for (int i = 0; i < combinations.size(); i++)
+                    {
+                        CheckingContext context = contexts.get(i).clone();
+
+                        for (Match match : segment.matches())
+                        {
+                            match.checkPrecedence(context);
+                        }
+
+
+                        List<Match> matches1 = new ArrayList<>(combinations.get(i));
+                        matches1.addAll(segment.matches());
+                        iterated.add(matches1);
+                        con.add(context);
+                    }
+                    results.put("THIS IS VALID!", results.getOrDefault("THIS IS VALID!", 0) + 1);
+                }
+                catch (Exception e)
+                {
+                    results.put(e.getMessage(), results.getOrDefault(e.getMessage(), 0) + 1);
+                }
+            }
+            combinations = iterated;
+            contexts = con;
+        }
+
+        results.forEach((a, b) -> System.out.println("\t" + a + " " + b));
+        List<Interpretation> interpretations = new ArrayList<>();
+        for (int i = 0; i < combinations.size(); i++)
+        {
+            List<Match> matches1 = combinations.get(i);
+            CheckingContext cont= contexts.get(i);
+            interpretations.add(new Interpretation(matches1, cont));
+        }
         return interpretations;
     }
 
