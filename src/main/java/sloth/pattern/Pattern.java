@@ -2,15 +2,23 @@ package sloth.pattern;
 
 import sloth.Provider;
 import sloth.checking.Validator;
+import sloth.inference.Fragment;
+import sloth.inference.InferenceContext;
 import sloth.match.Match;
 import sloth.match.Matcher;
 import sloth.match.MatchingContext;
 
 import java.util.List;
+import java.util.function.BiFunction;
 import java.util.function.Function;
 
-public record Pattern(String name, Matcher matcher, Function<Match, String> tree, Validator validator)
+public record Pattern(String name, Matcher matcher, Function<Match, String> tree, Validator validator, BiFunction<InferenceContext, Match, Fragment> flatten)
 {
+    public Pattern(String name, Matcher matcher, Function<Match, String> tree, Validator validator)
+    {
+        this(name, matcher, tree, validator, null);
+    }
+
     public List<Match> tryMatch(MatchingContext context, Provider<String> provider, Match match)
     {
         if (!provider.hasRemaining())

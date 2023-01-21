@@ -1,6 +1,8 @@
 package sloth.match;
 
 import sloth.checking.CheckingContext;
+import sloth.inference.Fragment;
+import sloth.inference.InferenceContext;
 import sloth.pattern.Pattern;
 
 import java.util.*;
@@ -18,6 +20,13 @@ public record Match(int start, int end, Pattern pattern, Map<String, Lst<Object>
     private Match(int start, int end, Pattern pattern, Map<String, Lst<Object>> values)
     {
         this(start, end, pattern, values, false);
+    }
+
+    public int flatten(InferenceContext context)
+    {
+        Fragment f = this.pattern.flatten().apply(context, this);
+        context.register(f);
+        return f.output();
     }
     public Match extend(int end)
     {

@@ -1,7 +1,6 @@
 package sloth.checking;
 
 import java.util.*;
-import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
 import static java.util.function.Predicate.not;
@@ -35,7 +34,7 @@ public class PrecedenceGraph
                 .flatMap(List::stream)
                 .filter(not(missing::contains))
                 .collect(Collectors.toSet());
-        if(!m.isEmpty())
+        if (!m.isEmpty())
             throw new RuntimeException("Undefined dependencies! " + m);
         int iteration = 0;
         boolean changed;
@@ -49,7 +48,7 @@ public class PrecedenceGraph
                 boolean isMissing = required.stream()
                         .map(missing::contains)
                         .reduce(false, (a, b) -> a || b);
-                if(isMissing)
+                if (isMissing)
                 {
                     miss.add(s);
                 }
@@ -63,7 +62,7 @@ public class PrecedenceGraph
             missing = miss;
         }
         while (changed);
-        if(!missing.isEmpty())
+        if (!missing.isEmpty())
         {
             StringBuilder text = new StringBuilder();
             for (String s : missing)

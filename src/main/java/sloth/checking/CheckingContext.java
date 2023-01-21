@@ -1,13 +1,13 @@
 package sloth.checking;
 
 import java.util.ArrayDeque;
-import java.util.Collection;
 import java.util.Deque;
 
 public class CheckingContext
 {
     private final Deque<Scope> scopes;
     private final PrecedenceGraph graph;
+
     private CheckingContext(PrecedenceGraph graph, Deque<Scope> scopes)
     {
         this.graph = graph;
@@ -25,11 +25,13 @@ public class CheckingContext
         return new CheckingContext(
                 this.graph,
                 this.scopes.stream()
-                        .map(Scope::clone)
+                        .map(Scope::copy)
                         .collect(
                                 ArrayDeque::new,
                                 ArrayDeque::add,
-                                (a, b) -> {throw new RuntimeException();}
+                                (a, b) -> {
+                                    throw new RuntimeException();
+                                }
                         )
         );
     }
@@ -39,41 +41,11 @@ public class CheckingContext
         return this.graph.get(name);
     }
 
-    public boolean isVariableDefined(String name)
+    public void definedVariable(String name)
     {
-        for (Scope scope : this.scopes)
-        {
-            if(scope.isDefined(name))
-                return true;
-        }
-        return false;
-    }
-
-    public Type getVariableType(String name)
-    {
-        for (Scope scope : this.scopes)
-        {
-            if(scope.isDefined(name))
-                return scope.get(name);
-        }
-        throw new RuntimeException("Variable " + name + " is not defined!");
-    }
-
-    public void definedVariable(String name, Type v)
-    {
-        if(isVariableDefinedLocally(name))
+        if (isVariableDefinedLocally(name))
             throw new RuntimeException("Variable '" + name + "' is already defined!");
-        this.scopes.peek().define(name, v);
-    }
-
-    public void push(String name)
-    {
-        this.scopes.push(new Scope(name));
-    }
-
-    public void pop()
-    {
-        this.scopes.pop();
+        this.scopes.peek().define(name);
     }
 
     public boolean isVariableDefinedLocally(String name)

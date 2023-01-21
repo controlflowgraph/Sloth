@@ -1,39 +1,32 @@
 package sloth.checking;
 
-import java.util.HashMap;
-import java.util.Map;
+import java.util.HashSet;
+import java.util.Set;
 
-public record Scope(String name, Map<String, Type> variables)
+public record Scope(String name, Set<String> variables)
 {
     public Scope(String name)
     {
-        this(name, new HashMap<>());
+        this(name, new HashSet<>());
     }
 
     public boolean isDefined(String name)
     {
-        return this.variables.containsKey(name);
+        return this.variables.contains(name);
     }
 
-    public void define(String name, Type type)
+    public void define(String name)
     {
-        if(isDefined(name))
+        if (isDefined(name))
             throw new RuntimeException("Variable " + name + " already defined in scope!");
-        this.variables.put(name, type);
+        this.variables.add(name);
     }
 
-    public Type get(String name)
-    {
-        if(!isDefined(name))
-            throw new RuntimeException("Variable " + name + " not defined in scope!");
-        return this.variables.get(name);
-    }
-
-    public Scope clone()
+    public Scope copy()
     {
         return new Scope(
                 this.name,
-                new HashMap<>(this.variables)
+                new HashSet<>(this.variables)
         );
     }
 }
