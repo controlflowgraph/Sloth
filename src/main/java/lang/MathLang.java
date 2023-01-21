@@ -47,22 +47,22 @@ public class MathLang
                 .compile();
 
         String test = """
-                a <- 10
-                b <- 20
-                c <- a * 4 + b * 3
-                d <- {1, 2, 3, 4}
-                e <- 1 in d
-                f <- {(x, y) | x in d, y in d}
+                a := 10
+                b := 20
+                c := a * 4 + b * 3
+                d := {1, 2, 3, 4}
+                e := 1 in d
+                f := {(x, y) | x in d, y in d}
                 """;
         String text = """
-                a <- 10
-                b <- 20
-                c <- a + b
-                d <- c * 20
-                e <- {1, 2, 3}
-                f <- [4, 5, 6]
-                g <- 1 in e
-                h <- 1 in f
+                a := 10
+                b := 20
+                c := a + b
+                d := c * 20
+                e := {1, 2, 3}
+                f := [4, 5, 6]
+                g := 1 in e
+                h := 1 in f
                 """;
         InheritanceTree tree = new InheritanceTree();
         tree.add(new TypeDescription("Collection", List.of("A"), List.of()));
@@ -538,11 +538,11 @@ public class MathLang
                 new SequenceMatcher(List.of(
                         new Require(1),
                         new TextMatcher("n"),
-                        new WordMatcher("<-"),
+                        new WordMatcher(":="),
                         new Require(-1),
                         new SubMatcher("v")
                 )),
-                m -> "( " + m.attempt("n") + " <- " + m.attempt("v") + " )",
+                m -> "( " + m.attempt("n") + " := " + m.attempt("v") + " )",
                 (m, c) -> {
                     String name = (String) m.values().get("n").element();
                     Match v = (Match) m.values().get("v").element();
