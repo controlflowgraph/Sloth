@@ -164,8 +164,6 @@ public class MathLang
                 .map(inf.types()::get)
                 .anyMatch(Objects::isNull);
 
-        inf.fragments().forEach((a, b) -> System.out.println(a + " " + b + " -> " + inf.types().get(a)));
-
         if (missing)
             throw new RuntimeException("Problematic!");
         return inf;
