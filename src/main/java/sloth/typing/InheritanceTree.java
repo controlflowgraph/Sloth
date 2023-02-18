@@ -1,9 +1,6 @@
 package sloth.typing;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Optional;
-import java.util.Set;
+import java.util.*;
 import java.util.stream.Collectors;
 
 import static sloth.typing.SetUtils.*;
@@ -21,17 +18,23 @@ public record InheritanceTree(List<Node> nodes)
                 differentiate(a),
                 differentiate(b)
         );
-        List<Type> lst = intersection.stream().toList();
-        for (Type type : lst)
+
+        return eliminateRedundant(intersection);
+    }
+
+    public Set<Type> eliminateRedundant(Set<Type> elements)
+    {
+        Set<Type> eliminated = new HashSet<>(elements);
+        for (Type type : elements)
         {
-            if (intersection.contains(type))
+            if (elements.contains(type))
             {
                 Set<Type> differentiate = differentiate(type);
-                intersection.removeIf(differentiate::contains);
-                intersection.add(type);
+                eliminated.removeIf(differentiate::contains);
+                eliminated.add(type);
             }
         }
-        return intersection;
+        return eliminated;
     }
 
     public boolean isAssignable(Type to, Type from)
