@@ -105,7 +105,11 @@ public record InferenceContext(Map<Integer, Fragment> fragments, Map<Integer, Ty
         return this.types.get(source);
     }
 
-    public Type getSuperType(Type over, Type type)
+    public Set<Type> getSuperType(Type over, Type type)
+    {
+        return this.tree.getSuperType(over, type);
+    }
+    public Set<Type> getSuperType(Set<Type> over, Set<Type> type)
     {
         return this.tree.getSuperType(over, type);
     }
@@ -118,5 +122,14 @@ public record InferenceContext(Map<Integer, Fragment> fragments, Map<Integer, Ty
     public void pop()
     {
         this.scopes.pop();
+    }
+
+    public Type createAlias(Set<Type> over)
+    {
+        if(over.size() == 1)
+            return over.stream().toList().get(0);
+        String name = "$" + this.tree.nodes().size();
+        this.tree.add(new Descriptor(name, List.of(), over.stream().toList()));
+        return new Type(false, name, List.of());
     }
 }

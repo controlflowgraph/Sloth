@@ -1,4 +1,4 @@
-package sloth.typing;
+package sloth.inference;
 
 import java.util.List;
 import java.util.Set;

@@ -72,13 +72,13 @@ public class MathLang
                 i := ((a, b) -> a + b)(10, 20)
                 """;
         InheritanceTree tree = new InheritanceTree();
-        tree.add(new TypeDescription("Collection", List.of("A"), List.of()));
-        tree.add(new TypeDescription("UnorderedCollection", List.of("B"), List.of(new Type(false, "Collection", List.of(new Type(true, "B", List.of()))))));
-        tree.add(new TypeDescription("Set", List.of("C"), List.of(new Type(false, "UnorderedCollection", List.of(new Type(true, "C", List.of()))))));
-        tree.add(new TypeDescription("OrderedCollection", List.of("B"), List.of(new Type(false, "Collection", List.of(new Type(true, "B", List.of()))))));
-        tree.add(new TypeDescription("List", List.of("C"), List.of(new Type(false, "OrderedCollection", List.of(new Type(true, "C", List.of()))))));
-        tree.add(new TypeDescription("Number", List.of(), List.of()));
-        tree.add(new TypeDescription("Lambda", List.of(), List.of()));
+        tree.add(new Descriptor("Collection", List.of("A"), List.of()));
+        tree.add(new Descriptor("UnorderedCollection", List.of("B"), List.of(new Type(false, "Collection", List.of(new Type(true, "B", List.of()))))));
+        tree.add(new Descriptor("Set", List.of("C"), List.of(new Type(false, "UnorderedCollection", List.of(new Type(true, "C", List.of()))))));
+        tree.add(new Descriptor("OrderedCollection", List.of("B"), List.of(new Type(false, "Collection", List.of(new Type(true, "B", List.of()))))));
+        tree.add(new Descriptor("List", List.of("C"), List.of(new Type(false, "OrderedCollection", List.of(new Type(true, "C", List.of()))))));
+        tree.add(new Descriptor("Number", List.of(), List.of()));
+        tree.add(new Descriptor("Lambda", List.of(), List.of()));
         List<Interpretation> parse = SlothParser.parse(text, context, graph);
         List<InferenceContext> contexts = checkTypes(parse, tree);
         System.out.println(contexts.size() + " CONTEXT RESULTING");
@@ -512,12 +512,13 @@ public class MathLang
                 List<Type> types = this.sources.stream()
                         .map(context::getType)
                         .toList();
-                Type over = types.get(0);
+                Set<Type> over = Set.of(types.get(0));
                 for (Type type : types)
                 {
-                    over = context.getSuperType(over, type);
+                    over = context.getSuperType(over, Set.of(type));
                 }
-                context.setActual(this.output, new Type(false, "Set", List.of(over)));
+                Type aliased = context.createAlias(over);
+                context.setActual(this.output, new Type(false, "Set", List.of(aliased)));
             }
         }
 
@@ -548,12 +549,13 @@ public class MathLang
                 List<Type> types = this.sources.stream()
                         .map(context::getType)
                         .toList();
-                Type over = types.get(0);
+                Set<Type> over = Set.of(types.get(0));
                 for (Type type : types)
                 {
-                    over = context.getSuperType(over, type);
+                    over = context.getSuperType(over, Set.of(type));
                 }
-                context.setActual(this.output, new Type(false, "List", List.of(over)));
+                Type aliased = context.createAlias(over);
+                context.setActual(this.output, new Type(false, "List", List.of(aliased)));
             }
         }
 
