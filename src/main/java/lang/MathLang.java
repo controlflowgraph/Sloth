@@ -19,6 +19,8 @@ public class MathLang
     public static void main(String[] args)
     {
         List<Supplier<Pattern>> suppliers = List.of(
+                MathLang::lambda,
+                MathLang::emptySet,
                 MathLang::variable,
                 MathLang::plus,
                 MathLang::times,
@@ -36,6 +38,7 @@ public class MathLang
 
         PrecedenceGraph graph = new PrecedenceGraph()
                 .add("assign", List.of(), List.of())
+                .add("lambda", List.of("assign"), List.of())
                 .add("in", List.of("assign"), List.of("plus"))
                 .add("plus", List.of("assign"), List.of())
                 .add("times", List.of("plus"), List.of())
@@ -53,31 +56,48 @@ public class MathLang
                 d <- {1, 2, 3, 4}
                 e <- 1 in d
                 f <- {(x, y) | x in d, y in d}
+                g <- () -> (a) -> a
                 """;
         List<Interpretation> parse = SlothParser.parse(test, context, graph);
     }
-
-    private static final Type NUMBER_TYPE = new Type("Number");
-    private static final Type NONE_TYPE = new Type("None");
-    private static final Type BOOLEAN_TYPE = new Type("Boolean");
-    private static final Type OBJECT_TYPE = new Type("Object");
-
-    private interface Processor
+    private static Pattern lambda()
     {
-        Type process(CheckingContext context, Match a, Match b);
+        return new Pattern(
+                "lambda",
+                new SequenceMatcher(List.of(
+                        new WordMatcher("("),
+                        new PossibleMatcher(
+                                new SequenceMatcher(List.of(
+                                        new TextMatcher("p"),
+                                        new MultiMatcher(
+                                                true,
+                                                new SequenceMatcher(List.of(
+                                                        new WordMatcher(","),
+                                                        new TextMatcher("p")
+                                                ))
+                                        )
+                                ))
+                        ),
+                        new WordMatcher(")"),
+                        new WordMatcher("->"),
+                        new SubMatcher("b")
+                )),
+                (m, c) -> {
+                    c.push("lambda");
+                    Lst.asList(m.values().get("p"))
+                            .stream()
+                            .map(String.class::cast)
+                            .forEach(c::definedVariable);
+                    Match b = (Match) m.values().get("b").element();
+                    b.check(c);
+                    c.pop();
+                }
+        );
     }
 
     private static Pattern in()
     {
-        return binaryOperator(
-                "in",
-                "in",
-                (c, a, b) -> {
-                    a.check(c);
-                    b.check(c);
-                    return BOOLEAN_TYPE;
-                }
-        );
+        return binaryOperator("in", "in");
     }
 
     private static Pattern tuple()
@@ -93,14 +113,11 @@ public class MathLang
                         ))),
                         new WordMatcher(")")
                 )),
-                m -> "( tuple " + Lst.asList(m.values().get("v")) + " )",
                 (m, c) -> {
-                    List<Type> v = Lst.asList(m.values().get("v"))
+                    Lst.asList(m.values().get("v"))
                             .stream()
                             .map(Match.class::cast)
-                            .map(a -> a.check(c))
-                            .toList();
-                    return new Type("Tuple", v);
+                            .forEach(k -> k.check(c));
                 }
         );
     }
@@ -127,40 +144,25 @@ public class MathLang
                                 ))),
                         new WordMatcher("}")
                 )),
-                m -> "( set-const " + m.attempt("v") + " " + Lst.asList(m.values().get("n")) + " " + Lst.asList(m.values().get("s")) + " )",
                 (m, c) -> {
-                    List<String> n = Lst.asList(m.values().get("n"))
-                            .stream()
-                            .map(String.class::cast)
-                            .toList();
                     List<Match> s = Lst.asList(m.values().get("s"))
                             .stream()
                             .map(Match.class::cast)
                             .toList();
-
-                    List<Type> types = s.stream()
-                            .map(t -> t.check(c))
+                    List<String> n = Lst.asList(m.values().get("n"))
+                            .stream()
+                            .map(String.class::cast)
                             .toList();
 
-                    c.push("set-const");
-                    for (int i = 0; i < types.size(); i++)
+                    c.push("set-construction-via-pattern");
+                    for (int i = 0; i < s.size(); i++)
                     {
-                        Type t = types.get(i);
-                        if (!t.name().equals("Set"))
-                            throw new RuntimeException("Mismatching type!");
-                        String name = n.get(i);
-                        if (t.generics().isEmpty())
-                            c.definedVariable(name, OBJECT_TYPE);
-                        else if (t.generics().size() == 1)
-                            c.definedVariable(name, t.generics().get(0));
-                        else c.definedVariable(name, new Type("Union", t.generics()));
+                        c.definedVariable(n.get(i));
+                        s.get(i).check(c);
                     }
-
                     Match v = (Match) m.values().get("v").element();
-                    Type tv = v.check(c);
+                    v.check(c);
                     c.pop();
-
-                    return tv;
                 }
         );
     }
@@ -173,8 +175,7 @@ public class MathLang
                         new WordMatcher("{"),
                         new WordMatcher("}")
                 )),
-                m -> "(empty-set)",
-                (m, c) -> new Type("Set", List.of())
+                (m, c) -> {}
         );
     }
 
@@ -195,50 +196,31 @@ public class MathLang
                         )),
                         new WordMatcher("}")
                 )),
-                m -> "(set-of " + Lst.asList(m.values().get("v")) + " )",
                 (m, c) -> {
-                    List<Type> v = Lst.asList(m.values().get("v"))
+                    Lst.asList(m.values().get("v"))
                             .stream()
                             .map(Match.class::cast)
-                            .map(a -> a.check(c))
-                            .toList();
-                    Set<Type> unique = new HashSet<>();
-                    for (Type type : v)
-                    {
-                        if (!type.name().equals("Set"))
-                        {
-                            unique.addAll(type.generics());
-                        }
-                    }
-                    return new Type("Set", new ArrayList<>(unique));
+                            .forEach(k -> k.check(c));
                 }
         );
     }
 
     private static Pattern plus()
     {
-        return simpleBinaryOperator("plus", "+", NUMBER_TYPE, NUMBER_TYPE);
+        return simpleBinaryOperator("plus", "+");
     }
 
     private static Pattern times()
     {
-        return simpleBinaryOperator("times", "*", NUMBER_TYPE, NUMBER_TYPE);
+        return simpleBinaryOperator("times", "*");
     }
 
-    private static Pattern simpleBinaryOperator(String name, String symbol, Type required, Type result)
+    private static Pattern simpleBinaryOperator(String name, String symbol)
     {
-        return binaryOperator(name, symbol, (c, a, b) -> {
-            Type ta = a.check(c);
-            Type tb = b.check(c);
-            if (!ta.equals(required))
-                throw new RuntimeException("Mismatching type!");
-            if (!tb.equals(required))
-                throw new RuntimeException("Mismatching type!");
-            return result;
-        });
+        return binaryOperator(name, symbol);
     }
 
-    private static Pattern binaryOperator(String name, String symbol, Processor processor)
+    private static Pattern binaryOperator(String name, String symbol)
     {
         return new Pattern(
                 name,
@@ -249,18 +231,16 @@ public class MathLang
                         new Require(-1),
                         new SubMatcher("b")
                 )),
-                m -> "( " + m.attempt("a") + " " + symbol + " " + m.attempt("b") + " )",
                 (m, c) -> {
-                    int pred = c.getPrecedence(name);
-
                     Match a = (Match) m.values().get("a").element();
                     Match b = (Match) m.values().get("b").element();
-
+                    a.check(c);
+                    b.check(c);
+                    int p = c.getPrecedence(m.pattern().name());
                     int pa = c.getPrecedence(a.pattern().name());
                     int pb = c.getPrecedence(b.pattern().name());
-                    if (pa < pred || pb <= pred)
-                        throw new RuntimeException("Mismatching precedence!");
-                    return processor.process(c, a, b);
+                    if(pa < p || pb <= p)
+                        throw new RuntimeException("Mismatching!");
                 }
         );
     }
@@ -276,15 +256,16 @@ public class MathLang
                         new Require(-1),
                         new SubMatcher("v")
                 )),
-                m -> "( " + m.attempt("n") + " <- " + m.attempt("v") + " )",
                 (m, c) -> {
-                    String name = (String) m.values().get("n").element();
+                    if(c.isVariableDefinedLocally(m.attempt("n")))
+                        throw new RuntimeException("Variable '" + m.attempt("n") + "' is already defined in scope!");
+                    c.definedVariable(m.attempt("n"));
                     Match v = (Match) m.values().get("v").element();
-                    if (c.isVariableDefinedLocally(name))
-                        throw new RuntimeException("Variable already defined");
-                    Type check = v.check(c);
-                    c.definedVariable(name, check);
-                    return NONE_TYPE;
+                    v.check(c);
+                    int p = c.getPrecedence(m.pattern().name());
+                    int pv = c.getPrecedence(v.pattern().name());
+                    if(pv <= p)
+                        throw new RuntimeException("Mismatching!");
                 }
         );
     }
@@ -294,12 +275,11 @@ public class MathLang
         return new Pattern(
                 "var",
                 new VariableMatcher("n"),
-                m -> m.attempt("n"),
                 (m, c) -> {
-                    String name = (String) m.values().get("n").element();
-                    if (!c.isVariableDefined(name))
-                        throw new RuntimeException("Variable not in scope!");
-                    return c.getVariableType(name);
+                    if (!c.isVariableDefined(m.attempt("n")))
+                    {
+                        throw new RuntimeException("Variable " + m.attempt("n") + " is not defined!");
+                    }
                 }
         );
     }
@@ -309,8 +289,7 @@ public class MathLang
         return new Pattern(
                 "num",
                 new NumMatcher(),
-                m -> m.attempt("val"),
-                (m, c) -> NUMBER_TYPE
+                (m, c) -> {}
         );
     }
 }

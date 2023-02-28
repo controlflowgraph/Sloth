@@ -54,21 +54,14 @@ public record Match(int start, int end, Pattern pattern, Map<String, Lst<Object>
     {
         return attempt(m -> m.values().get(name).element().toString(), "?");
     }
+    public void check(CheckingContext context)
+    {
+        this.pattern.validator().validate(this, context);
+    }
 
     @Override
     public String toString()
     {
-        if(this.pattern != null)
-            return this.pattern.tree().apply(this);
-        return "Match{" + start +
-                ", " + end +
-                ", " + pattern +
-                ", " + values +
-                '}';
-    }
-
-    public Type check(CheckingContext context)
-    {
-        return this.pattern.validator().validate(this, context);
+        return "[" + pattern + " " + values + "]";
     }
 }

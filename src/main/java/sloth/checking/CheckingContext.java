@@ -49,21 +49,11 @@ public class CheckingContext
         return false;
     }
 
-    public Type getVariableType(String name)
-    {
-        for (Scope scope : this.scopes)
-        {
-            if(scope.isDefined(name))
-                return scope.get(name);
-        }
-        throw new RuntimeException("Variable " + name + " is not defined!");
-    }
-
-    public void definedVariable(String name, Type v)
+    public void definedVariable(String name)
     {
         if(isVariableDefinedLocally(name))
             throw new RuntimeException("Variable '" + name + "' is already defined!");
-        this.scopes.peek().define(name, v);
+        this.scopes.peek().define(name);
     }
 
     public void push(String name)
