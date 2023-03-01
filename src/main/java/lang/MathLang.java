@@ -51,20 +51,17 @@ public class MathLang
                 .add("num", List.of("times"), List.of())
                 .compile();
 
-        String t = """
+        String test = """
+                a <- 10
+                b <- 20
+                c <- a * 4 + b * 3
+                d <- {1, 2, 3, 4}
+                e <- 1 in d
+                f <- {(x, y) | x in d, y in d}
+                g <- (aaaaa) -> (() -> aaaaa)
+                h <- (g(10)())
                 """;
 
-        String test = """
-                a <- 10.
-                b <- 20.
-                c <- a * 4 + b * 3.
-                d <- {1, 2, 3, 4}.
-                e <- 1 in d.
-                f <- {(x, y) | x in d, y in d}.
-                g <- (aaaaa) -> (() -> aaaaa).
-                h <- g(10).
-                i <- h().
-                """;
         List<Interpretation> parse = SlothParser.parse(test, context, graph);
         for (Interpretation interpretation : parse)
         {
@@ -73,7 +70,8 @@ public class MathLang
             {
                 match.eval(eval);
             }
-            System.out.println("THE RESULT IS: " + eval.get("i"));
+            System.out.println("GLOBAL SCOPE:");
+            eval.current().forEach((a, b) -> System.out.println(a + ": " + b));
         }
     }
 
@@ -129,7 +127,6 @@ public class MathLang
         {
             context.push(this.cont);
             context.push();
-            System.out.println(this.names + " <-> " + arguments);
             for (int i = 0; i < this.names.size(); i++)
             {
                 context.set(this.names.get(i), arguments.get(i));
