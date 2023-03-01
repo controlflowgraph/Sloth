@@ -1,24 +1,23 @@
 package lang;
 
 import sloth.SlothParser;
-import sloth.checking.CheckingContext;
 import sloth.checking.PrecedenceGraph;
-import sloth.checking.Type;
+import sloth.eval.EvaluationContext;
 import sloth.match.*;
 import sloth.model.Interpretation;
 import sloth.pattern.Pattern;
 
-import java.util.ArrayList;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Set;
+import java.util.*;
+import java.util.function.BiFunction;
 import java.util.function.Supplier;
+import java.util.stream.Collectors;
 
 public class MathLang
 {
     public static void main(String[] args)
     {
         List<Supplier<Pattern>> suppliers = List.of(
+                MathLang::call,
                 MathLang::lambda,
                 MathLang::emptySet,
                 MathLang::variable,
@@ -26,6 +25,7 @@ public class MathLang
                 MathLang::times,
                 MathLang::in,
                 MathLang::tuple,
+                MathLang::sub,
                 MathLang::setConst,
                 MathLang::setOf,
                 MathLang::assign,
@@ -39,27 +39,108 @@ public class MathLang
         PrecedenceGraph graph = new PrecedenceGraph()
                 .add("assign", List.of(), List.of())
                 .add("lambda", List.of("assign"), List.of())
+                .add("call", List.of("assign"), List.of())
                 .add("in", List.of("assign"), List.of("plus"))
                 .add("plus", List.of("assign"), List.of())
                 .add("times", List.of("plus"), List.of())
                 .add("tuple", List.of("times"), List.of())
+                .add("sub", List.of("times"), List.of())
                 .add("set-of", List.of("in"), List.of())
                 .add("set-const", List.of("in"), List.of())
                 .add("var", List.of("times"), List.of())
                 .add("num", List.of("times"), List.of())
                 .compile();
 
+        String t = """
+                """;
+
         String test = """
-                a <- 10
-                b <- 20
-                c <- a * 4 + b * 3
-                d <- {1, 2, 3, 4}
-                e <- 1 in d
-                f <- {(x, y) | x in d, y in d}
-                g <- () -> (a) -> a
+                a <- 10.
+                b <- 20.
+                c <- a * 4 + b * 3.
+                d <- {1, 2, 3, 4}.
+                e <- 1 in d.
+                f <- {(x, y) | x in d, y in d}.
+                g <- (aaaaa) -> (() -> aaaaa).
+                h <- g(10).
+                i <- h().
                 """;
         List<Interpretation> parse = SlothParser.parse(test, context, graph);
+        for (Interpretation interpretation : parse)
+        {
+            EvaluationContext eval = new EvaluationContext();
+            for (Match match : interpretation.matches())
+            {
+                match.eval(eval);
+            }
+            System.out.println("THE RESULT IS: " + eval.get("i"));
+        }
     }
+
+    private static Pattern call()
+    {
+        return new Pattern(
+                "call",
+                new SequenceMatcher(List.of(
+                        new Require(2),
+                        new SubMatcher("v"),
+                        new WordMatcher("("),
+                        new Require(-1),
+                        new PossibleMatcher(
+                                new SequenceMatcher(List.of(
+                                        new SubMatcher("p"),
+                                        new MultiMatcher(
+                                                true,
+                                                new SubMatcher("p")
+                                        )
+                                ))
+                        ),
+                        new WordMatcher(")"),
+                        new Require(-1)
+                )),
+                (m, c) -> {
+                    Match v = (Match) m.values().get("v").element();
+                    Lst.asList(m.values().get("p"))
+                            .stream()
+                            .map(Match.class::cast)
+                            .forEach(a -> a.check(c));
+                    v.check(c);
+                    int p = c.getPrecedence(m.pattern().name());
+                    int pv = c.getPrecedence(v.pattern().name());
+                    if(pv < p)
+                        throw new RuntimeException("Mismatching!");
+                },
+                (m, c) -> {
+                    Match v = (Match) m.values().get("v").element();
+                    Lmd eval = (Lmd) v.eval(c);
+                    List<Object> args = Lst.asList(m.values().get("p"))
+                            .stream()
+                            .map(Match.class::cast)
+                            .map(a -> a.eval(c))
+                            .toList();
+                    return eval.call(c, args);
+                }
+        );
+    }
+
+    public record Lmd(Map<String, Object> cont, List<String> names, Match body)
+    {
+        public Object call(EvaluationContext context, List<Object> arguments)
+        {
+            context.push(this.cont);
+            context.push();
+            System.out.println(this.names + " <-> " + arguments);
+            for (int i = 0; i < this.names.size(); i++)
+            {
+                context.set(this.names.get(i), arguments.get(i));
+            }
+            Object result = this.body.eval(context);
+            context.pop();
+            context.pop();
+            return result;
+        }
+    }
+
     private static Pattern lambda()
     {
         return new Pattern(
@@ -91,13 +172,39 @@ public class MathLang
                     Match b = (Match) m.values().get("b").element();
                     b.check(c);
                     c.pop();
+                },
+                (m, c) -> {
+                    Map<String, Object> cont = c.flatten();
+                    List<String> args = Lst.asList(m.values().get("p"))
+                            .stream()
+                            .map(String.class::cast)
+                            .toList();
+                    Match body = (Match) m.values().get("b").element();
+                    return new Lmd(cont, args, body);
                 }
         );
     }
 
     private static Pattern in()
     {
-        return binaryOperator("in", "in");
+        return binaryOperator("in", "in", (a, b) -> ((Collection<?>) b).contains(a));
+    }
+
+    private static Pattern sub()
+    {
+        return new Pattern(
+                "sub",
+                new SequenceMatcher(List.of(
+                        new Require(2),
+                        new WordMatcher("("),
+                        new Require(-1),
+                        new SubMatcher("v"),
+                        new WordMatcher(")"),
+                        new Require(-1)
+                )),
+                (m, c) -> ((Match) m.values().get("v").element()).check(c),
+                (m, c) -> ((Match) m.values().get("v").element()).eval(c)
+        );
     }
 
     private static Pattern tuple()
@@ -107,18 +214,21 @@ public class MathLang
                 new SequenceMatcher(List.of(
                         new WordMatcher("("),
                         new SubMatcher("v"),
-                        new MultiMatcher(true, new SequenceMatcher(List.of(
+                        new MultiMatcher(false, new SequenceMatcher(List.of(
                                 new WordMatcher(","),
                                 new SubMatcher("v")
                         ))),
                         new WordMatcher(")")
                 )),
-                (m, c) -> {
-                    Lst.asList(m.values().get("v"))
-                            .stream()
-                            .map(Match.class::cast)
-                            .forEach(k -> k.check(c));
-                }
+                (m, c) -> Lst.asList(m.values().get("v"))
+                        .stream()
+                        .map(Match.class::cast)
+                        .forEach(k -> k.check(c)),
+                (m, c) -> Lst.asList(m.values().get("v"))
+                        .stream()
+                        .map(Match.class::cast)
+                        .map(a -> a.eval(c))
+                        .toList()
         );
     }
 
@@ -163,8 +273,46 @@ public class MathLang
                     Match v = (Match) m.values().get("v").element();
                     v.check(c);
                     c.pop();
+                },
+                (m, c) -> {
+                    List<String> variables = Lst.asList(m.values().get("n"))
+                            .stream()
+                            .map(String.class::cast)
+                            .toList();
+                    List<Collection<Object>> iterators = Lst.asList(m.values().get("s"))
+                            .stream()
+                            .map(Match.class::cast)
+                            .map(a -> a.eval(c))
+                            .map(a -> (Collection<Object>) a)
+                            .toList();
+                    Match op = (Match) m.values().get("v").element();
+                    c.push();
+                    Set<Object> results = new HashSet<>();
+                    gooo(results, variables, iterators, 0, c, op);
+                    c.pop();
+                    return results;
                 }
         );
+    }
+
+    private static void gooo(Set<Object> results, List<String> name, List<Collection<Object>> sources, int index, EvaluationContext context, Match m)
+    {
+        if(index + 1 == sources.size())
+        {
+            for (Object o : sources.get(index))
+            {
+                context.set(name.get(index), o);
+                results.add(m.eval(context));
+            }
+        }
+        else
+        {
+            for (Object o : sources.get(index))
+            {
+                context.set(name.get(index), o);
+                gooo(results, name, sources, index + 1, context, m);
+            }
+        }
     }
 
     private static Pattern emptySet()
@@ -175,7 +323,10 @@ public class MathLang
                         new WordMatcher("{"),
                         new WordMatcher("}")
                 )),
-                (m, c) -> {}
+                (m, c) -> {},
+                (m, c) -> {
+                    throw new RuntimeException("ERRORING!");
+                }
         );
     }
 
@@ -201,26 +352,26 @@ public class MathLang
                             .stream()
                             .map(Match.class::cast)
                             .forEach(k -> k.check(c));
-                }
+                },
+                (m, c) -> Lst.asList(m.values().get("v"))
+                        .stream()
+                        .map(Match.class::cast)
+                        .map(a -> a.eval(c))
+                        .collect(Collectors.toSet())
         );
     }
 
     private static Pattern plus()
     {
-        return simpleBinaryOperator("plus", "+");
+        return binaryOperator("plus", "+", (a, b) -> ((Double) a) + ((Double) b));
     }
 
     private static Pattern times()
     {
-        return simpleBinaryOperator("times", "*");
+        return binaryOperator("times", "*", (a, b) -> ((Double) a) * ((Double) b));
     }
 
-    private static Pattern simpleBinaryOperator(String name, String symbol)
-    {
-        return binaryOperator(name, symbol);
-    }
-
-    private static Pattern binaryOperator(String name, String symbol)
+    private static Pattern binaryOperator(String name, String symbol, BiFunction<Object, Object, Object> operator)
     {
         return new Pattern(
                 name,
@@ -241,6 +392,13 @@ public class MathLang
                     int pb = c.getPrecedence(b.pattern().name());
                     if(pa < p || pb <= p)
                         throw new RuntimeException("Mismatching!");
+                },
+                (m, c) -> {
+                    Match a = (Match) m.values().get("a").element();
+                    Match b = (Match) m.values().get("b").element();
+                    Object oa = a.eval(c);
+                    Object ob = b.eval(c);
+                    return operator.apply(oa, ob);
                 }
         );
     }
@@ -266,6 +424,13 @@ public class MathLang
                     int pv = c.getPrecedence(v.pattern().name());
                     if(pv <= p)
                         throw new RuntimeException("Mismatching!");
+                },
+                (m, c) -> {
+                    Match v = (Match) m.values().get("v").element();
+                    String n = (String) m.values().get("n").element();
+                    Object r = v.eval(c);
+                    c.set(n, r);
+                    return null;
                 }
         );
     }
@@ -280,6 +445,10 @@ public class MathLang
                     {
                         throw new RuntimeException("Variable " + m.attempt("n") + " is not defined!");
                     }
+                },
+                (m, c) -> {
+                    String name = (String) m.values().get("n").element();
+                    return c.get(name);
                 }
         );
     }
@@ -289,7 +458,8 @@ public class MathLang
         return new Pattern(
                 "num",
                 new NumMatcher(),
-                (m, c) -> {}
+                (m, c) -> {},
+                (m, c) -> Double.parseDouble((String) m.values().get("val").element())
         );
     }
 }

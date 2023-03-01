@@ -2,6 +2,7 @@ package sloth.pattern;
 
 import sloth.Provider;
 import sloth.checking.Validator;
+import sloth.eval.Evaluator;
 import sloth.match.Match;
 import sloth.match.Matcher;
 import sloth.match.MatchingContext;
@@ -10,7 +11,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.function.Function;
 
-public record Pattern(String name, Matcher matcher, Validator validator)
+public record Pattern(String name, Matcher matcher, Validator validator, Evaluator evaluator)
 {
     public List<Match> tryMatch(MatchingContext context, Provider<String> provider, Match match)
     {

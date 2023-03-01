@@ -2,8 +2,10 @@ package sloth.match;
 
 import sloth.checking.CheckingContext;
 import sloth.checking.Type;
+import sloth.eval.EvaluationContext;
 import sloth.pattern.Pattern;
 
+import java.security.spec.ECField;
 import java.util.*;
 import java.util.function.Function;
 
@@ -57,6 +59,11 @@ public record Match(int start, int end, Pattern pattern, Map<String, Lst<Object>
     public void check(CheckingContext context)
     {
         this.pattern.validator().validate(this, context);
+    }
+
+    public Object eval(EvaluationContext context)
+    {
+        return this.pattern.evaluator().evaluate(this, context);
     }
 
     @Override
