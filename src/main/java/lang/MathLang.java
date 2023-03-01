@@ -52,14 +52,14 @@ public class MathLang
                 .compile();
 
         String test = """
-                a <- 10
-                b <- 20
-                c <- a * 4 + b * 3
-                d <- {1, 2, 3, 4}
-                e <- 1 in d
-                f <- {(x, y) | x in d, y in d}
-                g <- (aaaaa) -> (() -> aaaaa)
-                h <- (g(10)())
+                a := 10
+                b := 20
+                c := a * 4 + b * 3
+                d := {1, 2, 3, 4}
+                e := 1 in d
+                f := {(x, y) | x in d, y in d}
+                g := (aaaaa) -> (() -> aaaaa)
+                h := (g(10)())
                 """;
 
         List<Interpretation> parse = SlothParser.parse(test, context, graph);
@@ -407,7 +407,7 @@ public class MathLang
                 new SequenceMatcher(List.of(
                         new Require(1),
                         new TextMatcher("n"),
-                        new WordMatcher("<-"),
+                        new WordMatcher(":="),
                         new Require(-1),
                         new SubMatcher("v")
                 )),
